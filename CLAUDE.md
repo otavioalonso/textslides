@@ -35,7 +35,8 @@ from the CDN; equation widths in saved decks were measured with it).
   explicitly: `grid.ts` (put/clear cells, junction `seg`/`route`/`drawLine`/`drawBox`, extract/paste),
   `equations.ts` (anchor encoding, `eqAt`, `eqClear`, `putEq` with the measured width passed in), `history.ts`
   (snapshot undo stack), `text.ts` (plain-text export, incl. `vecText`), `plot.ts` (spec parser, ticks),
-  `heat.ts`, `braille.ts`, `demo.ts`, `types.ts`.
+  `heat.ts`, `braille.ts`, `deck.ts` (pages/frames), `textformat.ts` (the `.tslides` format: `toText`,
+  `fromText`, `parseDeck` for either format), `demo.ts`, `types.ts`.
 - `src/state.ts`: the one mutable editor state object `ed` (current doc, slide, tool, selection, cell metrics…),
   `S()`/`G()`/`T()` accessors, `mark()` to schedule a render, and `ui`: late-bound UI functions (filled in by
   `main.ts`) so lower layers can ask for a toolbar/inspector refresh without importing the UI.
@@ -54,6 +55,8 @@ from the CDN; equation widths in saved decks were measured with it).
 - `src/export/presentation.ts`: `buildPresentation(doc)` → one HTML string: player JS + CSS, KaTeX CSS with the
   woff2 fonts inlined as data URIs (loaded lazily via `import.meta.glob`, only on present/export), the deck, and
   every equation pre-rendered with `katexHtml`. Embedded text is escaped so it cannot close a `<script>`.
+- `src/ui/files.ts`: Ctrl+S / Ctrl+Shift+S / Ctrl+O with the File System Access API (keeps the file handle for the
+  session), falling back to download / file chooser. The save and open dialogs also copy / paste either format.
 - `src/ui/present.ts`: present mode shows that same HTML in a sandboxed (`allow-scripts`) iframe over the editor;
   the player posts `textslides:exit` with its slide index on Esc.
 
@@ -120,7 +123,9 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 
 - `$$…$$` display equations can be taller than a row; nothing reserves the rows above and below.
 - Plain-text export writes equations back as `$…$` source, which is longer than their cells, so that row loses alignment.
-- Downloads (`save` → download .json) do not work inside the claude.ai artifact viewer; they do work when served normally.
+- Downloads do not work inside the claude.ai artifact viewer; they do work when served normally. Saving straight
+  to a file needs the File System Access API (Chromium); the file handle is not kept across reloads.
+- The text format reads a literal space in a cell back as an empty cell (they draw the same).
 - Touch input is untested.
 - Plot specs are JavaScript expressions run with `new Function`, in the editor and in exported files. A deck from
   someone else can run code when opened; treat decks like scripts.
@@ -136,8 +141,11 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
    player: nothing left (notes view N, equations as text E, plot hover read-out and the green `vt` theme were
    added later).
 4. ~~More objects~~ (done: heat maps / drawdowns, braille plots, frame animations).
-5. **Files**: open/save to disk with the File System Access API, deck as a readable text format
-   (one file per slide?) so decks diff well in git.
+5. ~~Files~~ (done: `.tslides` text format, one file per deck with a section per slide; open/save to disk with
+   the File System Access API, download / file chooser elsewhere).
+
+Possible next steps: per-slide files in a folder (directory picker), reserving rows for tall `$$…$$`
+equations, aligned plain-text export of equations, touch input, diff-based undo for large decks.
 
 ## Conventions
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EQ_C } from '../../src/model/constants';
 import { eqAt, eqEncode, eqList, eqParse, expandToEquations, putEq } from '../../src/model/equations';
-import { clearCell, clearRect, extract, ix, pasteBuf, putCh, putText } from '../../src/model/grid';
+import { clearCell, clearRect, drawLine, extract, ix, pasteBuf, putCh, putText } from '../../src/model/grid';
 import { grid, trim } from './helpers';
 
 describe('equation encoding', () => {
@@ -93,6 +93,15 @@ describe('equation groups', () => {
     pasteBuf(g, extract(src, { x: 0, y: 0, w: 4, h: 1 }), 3, 1);
     expect(eqList(g).map((e) => [e.x, e.tex, e.w])).toEqual([[3, 'b', 4]]);
     expect(g.s.ch.filter((c) => c === EQ_C)).toHaveLength(3);
+  });
+
+  it('an arrow head landing on an equation removes it', () => {
+    const g = grid();
+    putEq(g, 2, 1, 'x', false, 0, 4);
+    drawLine(g, { x: 4, y: 4 }, { x: 4, y: 1 }, false, true, 0);
+    expect(eqList(g)).toEqual([]);
+    expect(g.s.ch.filter((c) => c === EQ_C)).toHaveLength(0);
+    expect(g.s.ch[ix(g, 4, 1)]).toBe('▲');
   });
 
   it('a selection that cuts an equation grows to cover the whole group', () => {

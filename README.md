@@ -16,7 +16,11 @@ npm run build      # static site in dist/ (open it from any static file server)
 ```
 
 Everything, KaTeX included, is bundled; no network needed at runtime. Decks autosave in the browser
-(localStorage); **save** / **open** move them in and out as JSON.
+(localStorage). **Ctrl+S** saves the deck to a file on disk and later saves go to the same file
+(**Ctrl+Shift+S** saves as); **Ctrl+O** opens one. In browsers without the File System Access API, saving
+downloads the file instead. Files use the `.tslides` text format: each slide is written as the text you see,
+with optional colour, line, equation and object layers below it, so decks read well and diff well in git.
+`.json` decks open and save too.
 
 **present** (or P) plays the deck full screen from the current slide; Esc returns to the editor on the slide you
 were showing. **export** downloads the same presentation as one self-contained HTML file (about 400 KB: player,
@@ -47,6 +51,7 @@ npm run typecheck
 | Shift / Alt while drawing a line | vertical-first route / arrow head |
 | Ctrl+Z, Ctrl+Shift+Z | undo, redo |
 | Ctrl+C / X / V | copy, cut, paste a selection |
+| Ctrl+S, Ctrl+Shift+S, Ctrl+O | save, save as, open |
 | P | present (Esc returns) |
 
 ## Layout

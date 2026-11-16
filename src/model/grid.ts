@@ -17,8 +17,9 @@ export function putCh(g: Grid, x: number, y: number, c: string, a: Attr): void {
   g.s.at[i] = a;
 }
 
+/** Write a string from (x, y), one character (code point, so emoji stay whole) per cell. */
 export function putText(g: Grid, x: number, y: number, str: string, a: Attr): void {
-  for (let i = 0; i < str.length; i++) putCh(g, x + i, y, str[i], a);
+  Array.from(str).forEach((c, i) => putCh(g, x + i, y, c, a));
 }
 
 /** Erase a cell completely and cut the neighbours' line stubs that pointed into it. */
@@ -89,6 +90,8 @@ export function drawLine(g: Grid, a: Pt, b: Pt, vfirst: boolean, arrow: boolean,
     else { px = cx; py = cy; }
     const ch = b.x > px ? '▶' : b.x < px ? '◀' : b.y > py ? '▼' : '▲';
     if (inb(g, b.x, b.y)) {
+      const e = eqAt(g, b.x, b.y);
+      if (e) eqClear(g, e); // like typing, an arrow head replaces an equation it lands on
       const i = ix(g, b.x, b.y);
       g.s.ch[i] = ch;
       g.s.at[i] = at;

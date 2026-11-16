@@ -83,7 +83,7 @@ export function buildSlideBtns(): void {
       const pre = snap();
       doc().slides.splice(ed.cur + 1, 0, JSON.parse(JSON.stringify(S())));
       ed.cur++;
-      commit(pre); buildSlideList(); mark();
+      commit(pre); buildSlideList(); ui.refreshInspector(); mark();
     }],
     ['↑', () => {
       if (ed.cur < 1) return;
@@ -91,7 +91,7 @@ export function buildSlideBtns(): void {
       const sl = doc().slides;
       [sl[ed.cur], sl[ed.cur - 1]] = [sl[ed.cur - 1], sl[ed.cur]];
       ed.cur--;
-      commit(pre); mark();
+      commit(pre); ui.refreshInspector(); mark();
     }],
     ['↓', () => {
       const sl = doc().slides;
@@ -99,7 +99,7 @@ export function buildSlideBtns(): void {
       const pre = snap();
       [sl[ed.cur], sl[ed.cur + 1]] = [sl[ed.cur + 1], sl[ed.cur]];
       ed.cur++;
-      commit(pre); mark();
+      commit(pre); ui.refreshInspector(); mark();
     }],
     ['delete', () => {
       const sl = doc().slides;

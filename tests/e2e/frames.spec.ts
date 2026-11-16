@@ -40,3 +40,18 @@ test('slides marked as frames play as one animated page', async ({ page }) => {
   await expect(page.locator('#present')).toBeHidden();
   expect(await page.evaluate(() => window.ED.cur)).toBe(2);
 });
+
+test('the side panel follows the current slide after copy and reorder', async ({ page }) => {
+  await openEditor(page);
+  await page.fill('#stitle', 'first');
+  await page.click('#sbtn button:has-text("copy")');
+  await expect(page.locator('#insp h3').first()).toHaveText('Slide 2');
+  await expect(page.locator('#sframe')).toBeEnabled();
+  await page.fill('#stitle', 'second');
+  await page.click('#sbtn button:has-text("↑")');
+  await expect(page.locator('#insp h3').first()).toHaveText('Slide 1');
+  await expect(page.locator('#stitle')).toHaveValue('second');
+  await expect(page.locator('#sframe')).toBeDisabled();
+  await page.click('#sbtn button:has-text("↓")');
+  await expect(page.locator('#insp h3').first()).toHaveText('Slide 2');
+});

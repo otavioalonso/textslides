@@ -34,7 +34,7 @@ export function typeStr(str: string): void {
   const cur = ed.cursor!;
   beginTyping();
   const g = G();
-  for (const c of str.split('')) {
+  for (const c of Array.from(str)) {
     if (c === '\n') { cur.y = Math.min(ed.doc.rows - 1, cur.y + 1); cur.x = ed.textX0; continue; }
     if (cur.x >= ed.doc.cols) break;
     const old = S().at[ix(g, cur.x, cur.y)] || 0;

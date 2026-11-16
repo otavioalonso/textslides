@@ -5,11 +5,15 @@ import { finishPath } from '../tools/path';
 import { moveSel } from '../tools/select';
 import { textKey, typeStr } from '../tools/text';
 import { TOOLS } from './hints';
+import { openFile, saveFile } from './files';
 import { closeModal, modalOpen } from './modal';
 import { present, presenting } from './present';
 import { setAttr, setTool, toggleRev } from './toolbar';
 
 function onKey(e: KeyboardEvent): void {
+  // File keys work everywhere, also while typing in a field.
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); (document.activeElement as HTMLElement | null)?.blur?.(); saveFile(e.shiftKey); return; }
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); openFile(); return; }
   const tg = (e.target as HTMLElement).tagName;
   if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') { if (e.key === 'Escape') (e.target as HTMLElement).blur(); return; }
   if (presenting()) return;
