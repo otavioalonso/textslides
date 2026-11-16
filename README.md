@@ -2,7 +2,8 @@
 
 A browser editor for slides made of a character grid (40×25, 80×24, 120×34), in the spirit of asciiflow:
 boxes and lines that join automatically, free text, highlighted bars, brush characters, LaTeX that
-renders inline and takes only its rendered width, and vector plots anchored to the grid.
+renders inline and takes only its rendered width, vector or braille plots and heat maps / weaving drawdowns
+anchored to the grid, and frame animations.
 
 ## Run
 
@@ -21,7 +22,10 @@ Everything, KaTeX included, is bundled; no network needed at runtime. Decks auto
 were showing. **export** downloads the same presentation as one self-contained HTML file (about 400 KB: player,
 deck, pre-rendered equations and KaTeX fonts inlined) that opens from disk with no network. In the player:
 ← → / Space / PageUp / PageDown to page, Home / End, C to switch colours, T for the plain-text view, F for full
-screen; `#3` in the URL opens slide 3.
+screen, A to play/pause an animation; `#3` in the URL opens slide 3.
+
+Animations: copy a slide, change it, and tick "animation frame of the previous slide" in the side panel. The player
+shows the run of frames as one page and loops it (ms per frame is set on the first slide).
 
 ## Test
 
@@ -35,7 +39,7 @@ npm run typecheck
 
 | key | action |
 |---|---|
-| V B L T F E G | select, box, line, text, draw (brush), erase, plot |
+| V B L T F E G H | select, box, line, text, draw (brush), erase, plot, heat map |
 | 1–4 | colour: normal, bright, accent, dim |
 | R | highlighted bar on the selection (or for the next typed text) |
 | $ (text tool) | open the equation bar; Enter or $ to place, $ first for display style |

@@ -29,13 +29,13 @@ export async function present(): Promise<void> {
   frame.onload = () => frame?.contentWindow?.focus();
 }
 
-function closePresent(page: number): void {
+function closePresent(slide: number): void {
   if (!frame) return;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   frame.remove();
   frame = null;
   $('present').classList.remove('on');
-  if (page !== ed.cur) gotoSlide(page);
+  if (slide !== ed.cur && slide < ed.doc.slides.length) gotoSlide(slide);
   mark();
 }
 
@@ -51,7 +51,7 @@ export function initPresent(): void {
   $('bExport').onclick = () => { exportHtml(); };
   window.addEventListener('message', (e) => {
     if (!frame || e.source !== frame.contentWindow) return;
-    const d = e.data as { type?: string; page?: number };
-    if (d && d.type === MSG_EXIT) closePresent(typeof d.page === 'number' ? d.page : ed.cur);
+    const d = e.data as { type?: string; slide?: number };
+    if (d && d.type === MSG_EXIT) closePresent(typeof d.slide === 'number' ? d.slide : ed.cur);
   });
 }

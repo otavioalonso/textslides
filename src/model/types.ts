@@ -48,6 +48,10 @@ export interface Slide {
   title?: string;
   /** Optional speaker notes, shown in the player's notes view. */
   notes?: string;
+  /** This slide is an animation frame continuing the previous slide (see model/deck.ts). */
+  frame?: boolean;
+  /** On the first slide of an animation: milliseconds per frame (default DEFAULT_DELAY). */
+  delay?: number;
   ch: string[];
   mk: number[];
   at: Attr[];

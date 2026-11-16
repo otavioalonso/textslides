@@ -33,7 +33,8 @@ from the CDN; equation widths in saved decks were measured with it).
 - `src/model/`: pure, DOM-free, unit-tested. Every cell operation takes a `Grid` (`{cols, rows, s: Slide}`)
   explicitly: `grid.ts` (put/clear cells, junction `seg`/`route`/`drawLine`/`drawBox`, extract/paste),
   `equations.ts` (anchor encoding, `eqAt`, `eqClear`, `putEq` with the measured width passed in), `history.ts`
-  (snapshot undo stack), `text.ts` (plain-text export), `plot.ts` (spec parser, ticks), `demo.ts`, `types.ts`.
+  (snapshot undo stack), `text.ts` (plain-text export, incl. `vecText`), `plot.ts` (spec parser, ticks),
+  `heat.ts`, `braille.ts`, `demo.ts`, `types.ts`.
 - `src/state.ts`: the one mutable editor state object `ed` (current doc, slide, tool, selection, cell metrics…),
   `S()`/`G()`/`T()` accessors, `mark()` to schedule a render, and `ui`: late-bound UI functions (filled in by
   `main.ts`) so lower layers can ask for a toolbar/inspector refresh without importing the UI.
@@ -41,7 +42,7 @@ from the CDN; equation widths in saved decks were measured with it).
 - `src/render/`: `draw.ts` canvas primitives (`drawMask`, `drawGlyph`, plots), `scene.ts` the main canvas,
   `overlay.ts` KaTeX equation overlay, `katex.ts` rendering + width measurement, `layout.ts` cell sizing.
 - `src/tools/`: `pointer.ts` dispatches canvas events to `select.ts`, `draw.ts` (box/line/brush/erase),
-  `text.ts`, `plot.ts`, `path.ts` (legacy curves); `hit.ts` has hit-testing.
+  `text.ts`, `plot.ts` (plot and heat tools), `path.ts` (legacy curves); `hit.ts` has hit-testing.
 - `src/ui/`: toolbar, inspector, slide list, equation bar, modals, keyboard, status, tool hints.
 - `src/hook.ts`: type of `window.ED`, the handle tests use to read the doc and cell size.
 - `src/render/slide.ts`: `drawCells` / `drawVecs` / `eqElement`, the slide drawing shared by the editor canvas and
@@ -63,7 +64,8 @@ at device pixel ratio 1 and 2).
 
 ```js
 doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
-        slides: [ { title?, notes?, ch: [...], mk: [...], at: [...], vec: [...] } ] }   // ch/mk/at: flat, index y*cols+x
+        slides: [ { title?, notes?, frame?, delay?, ch: [...], mk: [...], at: [...], vec: [...] } ] }
+        // ch/mk/at: flat arrays, index y*cols+x
 ```
 
 - `ch[i]` – the character in the cell, `''` for empty. Two special encodings:
@@ -79,6 +81,12 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
   `{ t: 'plot', x, y, w, h, spec }` where `spec` is a small text format:
   `x: 0 10`, `y: -1 1`, `title:`, `xlabel:`, `ylabel:`, `= expr` (function series, may use `rnd()`/`gauss()`, seeded),
   or rows of `x y` numbers (blank line separates data series).
+  `style: braille` makes it a braille plot: series rasterised into braille characters, 2×4 dots per cell
+  (`model/braille.ts`), painted as dots and part of the plain text.
+  `{ t: 'heat', x, y, w, h, spec }` is a heat map / weaving drawdown (`model/heat.ts`): pixels one cell wide and
+  half a cell tall, values −1…1 (positive in the theme's primary plot colour, negative in the secondary).
+  Spec: pattern rows of `#` / `.`, rows of numbers (both tiled), or `= expr` in `x, y, u, v`; `//` comments.
+  In plain text its negative pixels become half blocks ▀▄█ (`heatText`), only in otherwise empty cells.
   (Older code also has `{ t: 'path', pts, smooth, arrow, dash, attr }`; the curve tool was removed from the UI on
   request but rendering and selection code for paths still exists.)
 
@@ -86,7 +94,8 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 
 - Cell size is integer device pixels: `cw` chosen from the viewport, `ch = round(cw * 2.2)`, font size `cw / advance`.
 - Box drawing is not done with font glyphs: `drawMask` paints the junction mask as rectangles so lines meet exactly.
-  Block elements and shades (█ ▀ ▄ ▌ ▐ ░ ▒ ▓) and arrow heads are also painted, not typed, for the same reason.
+  Block elements and shades (█ ▀ ▄ ▌ ▐ ░ ▒ ▓), braille dots and arrow heads are also painted, not typed, for the
+  same reason.
 - Equations are KaTeX HTML in an overlay `div` (`#ov`), positioned on their cell group. Width in cells is measured
   once from the rendered HTML (`eqCells`), so an equation occupies exactly its rendered width.
 - Plots are drawn on the same canvas after the grid (`drawPlotObj`).
@@ -102,6 +111,9 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
   Clicking an equation selects its whole group; a drag rectangle grows to cover any equation it cuts
   (`expandToEquations`), and pasting over an equation removes it, so groups never split.
 - Slides have optional `title` and `notes` (side panel when nothing is selected).
+- Animations: a slide with `frame: true` is the next frame of the slide before it; the head slide's `delay` is the
+  ms per frame. `model/deck.ts` (`pages`, `pageOf`, `slideLabelNo`) groups slides into player pages; the slide
+  list labels frames 2.1, 2.2… The player loops a page's frames (A play/pause; paused for reduced motion).
 
 ## Known limits / bugs to keep in mind
 
@@ -120,11 +132,8 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 2. ~~Tests~~ (done: unit tests for junctions, equation groups, undo, plain text, plots; Playwright smoke tests).
 3. ~~Presenter mode / export~~ (done: present mode and self-contained HTML export with the look of
    `reference/player/page.html`; row-by-row reveal, plain-text view, colour toggle). Not ported from the reference
-   player: per-slide titles/notes (the doc has no fields for them yet), the LaTeX/text equation toggle, the green
-   `vt` theme, hover read-outs on plots, frame animations (see step 4).
-4. **More objects**: drawdown/heat-map grids (half-block pixels, two colours; see `heat_dd` in
-   `reference/weaving-deck/loom_slides.py`), braille line plots as a grid-native alternative to vector plots,
-   simple frame animations.
+   player: the LaTeX/text equation toggle, the green `vt` theme, hover read-outs on plots, a notes view.
+4. ~~More objects~~ (done: heat maps / drawdowns, braille plots, frame animations).
 5. **Files**: open/save to disk with the File System Access API, deck as a readable text format
    (one file per slide?) so decks diff well in git.
 

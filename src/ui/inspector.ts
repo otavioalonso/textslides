@@ -1,6 +1,7 @@
 /* Right-hand panel: key help when nothing is selected, otherwise the selected vector object's settings. */
 import { $ } from '../dom';
 import { commit, snap } from '../editor';
+import { DEFAULT_DELAY, pageOf, pages, type Page } from '../model/deck';
 import { heatPixels } from '../model/heat';
 import { parsePlot } from '../model/plot';
 import type { HeatObj } from '../model/types';
@@ -28,6 +29,12 @@ const PLOT_HELP =
 const HEAT_HELP =
   '<h3>Heat map</h3><p>Pixels are one cell wide and half a cell tall. Rows of <code>#</code> (secondary colour) and <code>.</code> (primary) — a weaving drawdown — or rows of numbers from −1 to 1; rows are tiled to fill the box. Or <code>= sin(u*6)*cos(v*4)</code>: <code>x</code>, <code>y</code> pixel index, <code>u</code>, <code>v</code> scaled 0–1, <code>rnd()</code>, <code>gauss()</code>.</p>';
 
+/** The animation the current slide belongs to, if it has more than one frame. */
+function animHead(): Page | null {
+  const p = pages(ed.doc)[pageOf(ed.doc, ed.cur).page];
+  return p.slides.length > 1 ? p : null;
+}
+
 export function refreshInspector(): void {
   const el = $('insp');
   const s = S();
@@ -36,10 +43,27 @@ export function refreshInspector(): void {
     el.innerHTML =
       '<h3>Slide ' + (ed.cur + 1) + '</h3><input type="text" id="stitle" placeholder="title (for the player and screen readers)">' +
       '<textarea id="snotes" rows="3" placeholder="speaker notes (N in the player)"></textarea>' +
+      '<label class="ck"><input type="checkbox" id="sframe"' + (S().frame ? ' checked' : '') + (ed.cur === 0 ? ' disabled' : '') + '>animation frame of the previous slide</label>' +
+      (animHead() ? '<label class="ck">ms per frame <input type="number" id="sdelay" min="20" step="10" style="width:80px"></label>' : '') +
       '<h3>Tool</h3><p id="hint"></p><h3>Keys</h3><p id="help">' + HELP + '</p>';
     $('hint').textContent = HINTS[ed.tool];
     slideField($<HTMLInputElement>('stitle'), 'title');
     slideField($<HTMLTextAreaElement>('snotes'), 'notes');
+    $<HTMLInputElement>('sframe').onchange = (e) => {
+      const pre = snap();
+      if ((e.target as HTMLInputElement).checked) S().frame = true; else delete S().frame;
+      commit(pre); refreshInspector(); mark();
+    };
+    const dl = document.getElementById('sdelay') as HTMLInputElement | null;
+    if (dl) {
+      const head = ed.doc.slides[animHead()!.slides[0]];
+      dl.value = String(head.delay || DEFAULT_DELAY);
+      dl.onchange = () => {
+        const v = Math.round(+dl.value);
+        if (!(v >= 20)) { dl.value = String(head.delay || DEFAULT_DELAY); return; }
+        const pre = snap(); head.delay = v; commit(pre);
+      };
+    }
     return;
   }
   if (o.t === 'plot' || o.t === 'heat') {

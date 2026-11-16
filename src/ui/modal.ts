@@ -1,6 +1,7 @@
 /* Modal dialogs: plain-text view, save, open, new. */
 import { $ } from '../dom';
 import { afterLoad, emptyDoc, fresh, pushUndo, snap } from '../editor';
+import { slideLabelNo } from '../model/deck';
 import { slideText } from '../model/text';
 import { ed, mark } from '../state';
 import { buildSlideList } from './slides';
@@ -49,7 +50,7 @@ function copyFrom(id: string): void {
 
 export function deckText(): string {
   const d = ed.doc;
-  return d.slides.map((s, i) => '── slide ' + (i + 1) + (s.title ? ': ' + s.title : '') + ' ──\n' + slideText({ cols: d.cols, rows: d.rows, s })).join('\n\n');
+  return d.slides.map((s, i) => '── slide ' + slideLabelNo(d, i) + (s.title ? ': ' + s.title : '') + ' ──\n' + slideText({ cols: d.cols, rows: d.rows, s })).join('\n\n');
 }
 
 function loadText(t: string): void {

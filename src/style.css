@@ -19,6 +19,8 @@ label.ck{display:flex;gap:4px;align-items:center;color:var(--dim);cursor:pointer
 #slides{display:flex;flex-direction:column;gap:8px}
 .th{position:relative;border:1px solid var(--line);border-radius:6px;padding:3px;cursor:pointer;background:#0f1117}
 .th.on{border-color:var(--acc)}
+.th.fr{margin-left:14px}
+.th.fr::before{content:'';position:absolute;left:-10px;top:50%;width:7px;border-top:1px solid var(--dim)}
 .th canvas{display:block;width:100%;height:auto;border-radius:3px}
 .th span{position:absolute;left:6px;top:4px;font:11px ui-monospace,Menlo,monospace;color:var(--dim)}
 #sbtn{display:flex;flex-wrap:wrap;gap:4px}

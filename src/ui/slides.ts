@@ -1,6 +1,7 @@
 /* Slide list: thumbnails and the new / copy / reorder / delete buttons. */
 import { $ } from '../dom';
 import { commit, snap } from '../editor';
+import { slideLabelNo } from '../model/deck';
 import { mkSlide } from '../model/grid';
 import { ed, mark, S, T, ui } from '../state';
 
@@ -38,7 +39,8 @@ export function drawThumbs(): void {
         g.stroke();
       }
     }
-    box.children[k].className = 'th' + (k === ed.cur ? ' on' : '');
+    box.children[k].className = 'th' + (k === ed.cur ? ' on' : '') + (sl.frame && k > 0 ? ' fr' : '');
+    (box.children[k].lastChild as HTMLElement).textContent = slideLabelNo(doc, k);
   });
 }
 
