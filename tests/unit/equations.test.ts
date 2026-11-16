@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EQ_C } from '../../src/model/constants';
-import { eqAt, eqEncode, eqList, eqParse, putEq } from '../../src/model/equations';
+import { eqAt, eqEncode, eqList, eqParse, expandToEquations, putEq } from '../../src/model/equations';
 import { clearCell, clearRect, extract, ix, pasteBuf, putCh, putText } from '../../src/model/grid';
 import { grid, trim } from './helpers';
 
@@ -85,6 +85,23 @@ describe('equation groups', () => {
     expect(g.s.ch.filter((c) => c === EQ_C)).toHaveLength(3);
   });
 
-  // Known limit (CLAUDE.md): moving part of a group splits it. Kept as a todo until the select tool expands to groups.
-  it.todo('moving a selection that covers only part of an equation moves the whole group');
+  it('pasting over an equation removes it instead of leaving a broken group', () => {
+    const g = grid();
+    putEq(g, 2, 1, 'a', false, 0, 3);
+    const src = grid();
+    putEq(src, 0, 0, 'b', false, 0, 4);
+    pasteBuf(g, extract(src, { x: 0, y: 0, w: 4, h: 1 }), 3, 1);
+    expect(eqList(g).map((e) => [e.x, e.tex, e.w])).toEqual([[3, 'b', 4]]);
+    expect(g.s.ch.filter((c) => c === EQ_C)).toHaveLength(3);
+  });
+
+  it('a selection that cuts an equation grows to cover the whole group', () => {
+    const g = grid();
+    putEq(g, 4, 1, 'x^2', false, 0, 4); // cells 4..7 on row 1
+    putEq(g, 9, 2, 'y', false, 0, 3); // cells 9..11 on row 2
+    expect(expandToEquations(g, { x: 6, y: 0, w: 2, h: 2 })).toEqual({ x: 4, y: 0, w: 4, h: 2 });
+    // Growing to the right reaches the second equation, which grows it further.
+    expect(expandToEquations(g, { x: 5, y: 1, w: 5, h: 2 })).toEqual({ x: 4, y: 1, w: 8, h: 2 });
+    expect(expandToEquations(g, { x: 0, y: 3, w: 5, h: 2 })).toEqual({ x: 0, y: 3, w: 5, h: 2 });
+  });
 });

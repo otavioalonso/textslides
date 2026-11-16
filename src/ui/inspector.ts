@@ -11,13 +11,28 @@ const HELP =
   '<code>$</code> in text mode opens the equation bar: type LaTeX, see it rendered above, Enter to place. Type <code>$</code> again at the start for display style. Click an equation (or double-click with select) to edit it.<br><br>' +
   'Plots are vector objects above the grid, anchored to cells.';
 
+/** Bind a text field to the current slide's title or notes; one undo step per edit (focus to blur). */
+function slideField(f: HTMLInputElement | HTMLTextAreaElement, key: 'title' | 'notes'): void {
+  const s = S();
+  f.value = s[key] || '';
+  let pre: string | null = null;
+  f.onfocus = () => { pre = snap(); };
+  f.oninput = () => { if (f.value) s[key] = f.value; else delete s[key]; };
+  f.onblur = () => { if (pre !== null) commit(pre); pre = null; };
+}
+
 export function refreshInspector(): void {
   const el = $('insp');
   const s = S();
   const o = ed.selObj >= 0 ? s.vec[ed.selObj] : null;
   if (!o) {
-    el.innerHTML = '<h3>Tool</h3><p id="hint"></p><h3>Keys</h3><p id="help">' + HELP + '</p>';
+    el.innerHTML =
+      '<h3>Slide ' + (ed.cur + 1) + '</h3><input type="text" id="stitle" placeholder="title (for the player and screen readers)">' +
+      '<textarea id="snotes" rows="3" placeholder="speaker notes (N in the player)"></textarea>' +
+      '<h3>Tool</h3><p id="hint"></p><h3>Keys</h3><p id="help">' + HELP + '</p>';
     $('hint').textContent = HINTS[ed.tool];
+    slideField($<HTMLInputElement>('stitle'), 'title');
+    slideField($<HTMLTextAreaElement>('snotes'), 'notes');
     return;
   }
   if (o.t === 'plot') {

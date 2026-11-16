@@ -161,3 +161,28 @@ for (const size of ['40x25', '80x24', '120x34']) {
     });
   }
 }
+
+test('slide title and notes are edited in the side panel, one undo step each', async ({ page }) => {
+  await openEditor(page);
+  await page.fill('#stitle', 'Intro');
+  await page.fill('#snotes', 'say hello');
+  await page.locator('#cv').click({ position: { x: 5, y: 5 } });
+  let s = await page.evaluate(() => window.ED.doc.slides[0]);
+  expect([s.title, s.notes]).toEqual(['Intro', 'say hello']);
+  await page.keyboard.press('Control+z');
+  s = await page.evaluate(() => window.ED.doc.slides[0]);
+  expect([s.title, s.notes]).toEqual(['Intro', undefined]);
+  await expect(page.locator('#stitle')).toHaveValue('Intro');
+});
+
+test('moving a selection that cuts an equation moves the whole equation', async ({ page }) => {
+  await openEditor(page);
+  // The demo has an equation starting at (2, 9). Select only its middle and drag the selection down 2 rows.
+  await dragCells(page, [6, 8], [8, 10]);
+  await dragCells(page, [7, 9], [7, 11]);
+  const r = await rows(page);
+  expect(r[9].slice(0, 20).trim()).toBe('');
+  expect(r[11].slice(2, 3)).toBe('$');
+  const anchors = await page.evaluate(() => window.ED.doc.slides[0].ch.filter((c) => c.charCodeAt(0) === 2).length);
+  expect(anchors).toBe(3);
+});

@@ -177,8 +177,18 @@ export function clearRect(g: Grid, r: Rect): void {
       }
 }
 
-/** Paste the non-empty cells of a buffer with its top-left at (px, py). */
+/**
+ * Paste the non-empty cells of a buffer with its top-left at (px, py). Equations in the grid that a pasted
+ * cell lands on are removed first, as when typing over them, so no broken equation group is left behind.
+ */
 export function pasteBuf(g: Grid, b: Buf, px: number, py: number): void {
+  for (let y = 0; y < b.h; y++)
+    for (let x = 0; x < b.w; x++) {
+      const k = y * b.w + x;
+      if (!b.ch[k] && !b.mk[k]) continue;
+      const e = eqAt(g, px + x, py + y);
+      if (e) eqClear(g, e);
+    }
   for (let y = 0; y < b.h; y++)
     for (let x = 0; x < b.w; x++) {
       const k = y * b.w + x;

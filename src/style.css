@@ -52,3 +52,4 @@ textarea{width:100%;font:12px/1.45 ui-monospace,Menlo,monospace;color:var(--fg);
 #present{position:fixed;inset:0;z-index:20;background:#0D0F13;display:none}
 #present.on{display:block}
 #present iframe{display:block;border:0;width:100%;height:100%}
+#insp input[type=text]{width:100%;cursor:text}

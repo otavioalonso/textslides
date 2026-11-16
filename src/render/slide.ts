@@ -1,6 +1,6 @@
 /* Drawing a slide's content, shared by the editor canvas, the player and exported presentations. */
 import { ARROWS, EQ_C } from '../model/constants';
-import type { Slide, Theme } from '../model/types';
+import type { Attr, Slide, Theme } from '../model/types';
 import { drawGlyph, drawMask, drawPathObj, drawPlotObj, type Pen } from './draw';
 
 /**
@@ -51,4 +51,9 @@ export function eqElement(x: number, y: number, w: number, cw: number, ch: numbe
   d.style.color = color;
   d.innerHTML = html;
   return d;
+}
+
+/** Equation colour: like a glyph, drawn in the background colour on a highlighted bar. */
+export function eqColor(Th: Theme, at: Attr): string {
+  return at & 4 ? Th.bg : Th.c[at & 3];
 }

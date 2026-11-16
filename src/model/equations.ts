@@ -94,3 +94,23 @@ export function putEq(g: Grid, x: number, y: number, tex: string, disp: boolean,
   }
   return w;
 }
+
+/**
+ * Grow a rectangle sideways until it cuts no equation group in two, so moving or copying a selection
+ * always carries whole equations.
+ */
+export function expandToEquations(g: Grid, r: { x: number; y: number; w: number; h: number }): { x: number; y: number; w: number; h: number } {
+  let { x, y, w, h } = r;
+  for (let changed = true; changed;) {
+    changed = false;
+    for (let yy = y; yy < y + h; yy++)
+      for (const xx of [x, x + w - 1]) {
+        const e = eqAt(g, xx, yy);
+        if (!e) continue;
+        const x0 = Math.min(x, e.x);
+        const x1 = Math.max(x + w, e.x + e.w);
+        if (x0 !== x || x1 !== x + w) { x = x0; w = x1 - x0; changed = true; }
+      }
+  }
+  return { x, y, w, h };
+}

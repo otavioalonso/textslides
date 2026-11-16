@@ -30,6 +30,7 @@ function inlineKatexCss(): Promise<string> {
 /** A short title for the deck: the first non-empty line of the first slide. */
 export function deckTitle(doc: Doc): string {
   const s = doc.slides[0];
+  if (s && s.title) return s.title;
   const line = s ? slideText({ cols: doc.cols, rows: doc.rows, s }).split('\n').find((l) => l.trim()) : '';
   const t = (line || '').replace(/\$+[^$]*\$+/g, '').replace(/\s+/g, ' ').replace(/\s\d+\s*\/\s*\d+$/, '').trim();
   return t.length > 60 ? t.slice(0, 59) + '…' : t || 'slides';

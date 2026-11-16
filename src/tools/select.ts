@@ -1,6 +1,6 @@
 /* Select tool: cell rectangles (drag to move), vector objects (drag to move, handle to resize). */
 import { commit } from '../editor';
-import { eqAt } from '../model/equations';
+import { eqAt, expandToEquations } from '../model/equations';
 import { clamp, clearRect, cloneGrid, extract, inRect, pasteBuf, rectOf, restoreGrid } from '../model/grid';
 import { ed, G, mark, S, ui, type Drag, type PPos } from '../state';
 import { hitHandle, hitObj } from './hit';
@@ -36,7 +36,7 @@ export function selectMove(p: PPos): void {
   const d = ed.drag;
   if (!d) return;
   const s = S();
-  if (d.kind === 'selrect') ed.sel = rectOf(d.p0, p);
+  if (d.kind === 'selrect') ed.sel = expandToEquations(G(), rectOf(d.p0, p));
   else if (d.kind === 'selmove') {
     const g = G();
     const dx = p.x - d.p0.x;

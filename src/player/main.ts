@@ -7,7 +7,7 @@ import { eqList } from '../model/equations';
 import { slideText } from '../model/text';
 import type { Grid } from '../model/types';
 import type { Pen } from '../render/draw';
-import { drawCells, drawVecs, eqElement } from '../render/slide';
+import { drawCells, drawVecs, eqColor, eqElement } from '../render/slide';
 import { eqKey, MSG_EXIT, type Presentation } from './types';
 
 const P: Presentation = JSON.parse(document.getElementById('deck')!.textContent!);
@@ -80,6 +80,7 @@ function grid(k: number): Grid {
 
 /** First non-empty line of a slide, for labels. */
 function slideLabel(k: number): string {
+  if (doc.slides[k].title) return doc.slides[k].title!;
   const line = slideText(grid(k)).split('\n').find((l) => l.trim());
   return line ? line.replace(/\s+/g, ' ').trim() : 'empty slide';
 }
@@ -133,7 +134,7 @@ function render(): void {
   eqBox.style.fontSize = fs / dpr + 'px';
   for (const g of eqList(grid(page))) {
     const html = P.eqs[eqKey(g.tex, g.disp)] ?? '';
-    const d = eqElement(g.x, g.y, g.w, cwC, chC, Th.c[g.at & 3], '<span>' + html + '</span>');
+    const d = eqElement(g.x, g.y, g.w, cwC, chC, eqColor(Th, g.at), '<span>' + html + '</span>');
     if (g.y >= lim) d.style.visibility = 'hidden';
     eqBox.append(d);
     const inner = d.firstElementChild as HTMLElement;

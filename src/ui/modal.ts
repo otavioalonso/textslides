@@ -49,7 +49,7 @@ function copyFrom(id: string): void {
 
 export function deckText(): string {
   const d = ed.doc;
-  return d.slides.map((s, i) => '── slide ' + (i + 1) + ' ──\n' + slideText({ cols: d.cols, rows: d.rows, s })).join('\n\n');
+  return d.slides.map((s, i) => '── slide ' + (i + 1) + (s.title ? ': ' + s.title : '') + ' ──\n' + slideText({ cols: d.cols, rows: d.rows, s })).join('\n\n');
 }
 
 function loadText(t: string): void {

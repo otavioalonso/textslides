@@ -63,7 +63,7 @@ at device pixel ratio 1 and 2).
 
 ```js
 doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
-        slides: [ { ch: [...], mk: [...], at: [...], vec: [...] } ] }   // ch/mk/at are flat arrays, index y*cols+x
+        slides: [ { title?, notes?, ch: [...], mk: [...], at: [...], vec: [...] } ] }   // ch/mk/at: flat, index y*cols+x
 ```
 
 - `ch[i]` – the character in the cell, `''` for empty. Two special encodings:
@@ -99,12 +99,12 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 - Drag tools copy the grid at pointer-down (`cloneGrid`) and redraw from that copy on every move.
 - Text tool: typing writes cells; `$` opens the equation bar (`#eqbar` input with live KaTeX preview `#eqprev`).
 - Select tool: rectangle selection, drag to move, arrow keys nudge, R toggles bar, 1–4 recolour.
-  Clicking an equation selects its whole group.
+  Clicking an equation selects its whole group; a drag rectangle grows to cover any equation it cuts
+  (`expandToEquations`), and pasting over an equation removes it, so groups never split.
+- Slides have optional `title` and `notes` (side panel when nothing is selected).
 
 ## Known limits / bugs to keep in mind
 
-- Selecting part of an equation with a drag rectangle and moving it can split the group.
-- An equation on a highlighted bar is drawn on the normal background (overlay has no bar fill).
 - `$$…$$` display equations can be taller than a row; nothing reserves the rows above and below.
 - Plain-text export writes equations back as `$…$` source, which is longer than their cells, so that row loses alignment.
 - Downloads (`save` → download .json) do not work inside the claude.ai artifact viewer; they do work when served normally.
@@ -118,7 +118,6 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 
 1. ~~Restructure without changing behaviour~~ (done: Vite + TypeScript modules, KaTeX from npm).
 2. ~~Tests~~ (done: unit tests for junctions, equation groups, undo, plain text, plots; Playwright smoke tests).
-   Still open: `it.todo` for moving part of an equation group.
 3. ~~Presenter mode / export~~ (done: present mode and self-contained HTML export with the look of
    `reference/player/page.html`; row-by-row reveal, plain-text view, colour toggle). Not ported from the reference
    player: per-slide titles/notes (the doc has no fields for them yet), the LaTeX/text equation toggle, the green

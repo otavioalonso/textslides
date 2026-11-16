@@ -3,7 +3,7 @@ import { ov } from '../dom';
 import { eqList } from '../model/equations';
 import { ed, G, T } from '../state';
 import { katexHtml } from './katex';
-import { eqElement } from './slide';
+import { eqColor, eqElement } from './slide';
 
 export function updateEq(): void {
   const e = ed.eqEdit;
@@ -15,5 +15,5 @@ export function updateEq(): void {
   ed.eqSig = sig;
   const Th = T();
   ov.innerHTML = '';
-  for (const g of list) ov.appendChild(eqElement(g.x, g.y, g.w, ed.cwC, ed.chC, Th.c[g.at & 3], katexHtml(g.tex, g.disp)));
+  for (const g of list) ov.appendChild(eqElement(g.x, g.y, g.w, ed.cwC, ed.chC, eqColor(Th, g.at), katexHtml(g.tex, g.disp)));
 }

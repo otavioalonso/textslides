@@ -24,6 +24,10 @@ export type VecObj = PlotObj | PathObj;
 
 /** One slide. `ch`, `mk` and `at` are flat arrays indexed `y * cols + x`. */
 export interface Slide {
+  /** Optional slide title (player labels, accessibility, presenter notes view). */
+  title?: string;
+  /** Optional speaker notes, shown in the player's notes view. */
+  notes?: string;
   ch: string[];
   mk: number[];
   at: Attr[];
