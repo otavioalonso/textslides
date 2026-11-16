@@ -1,0 +1,26 @@
+{
+  "name": "textmode-slides",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test --trace off"
+  },
+  "dependencies": {
+    "katex": "0.16.47"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/katex": "0.16.7",
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vite": "7.3.8",
+    "vitest": "4.1.12"
+  }
+}

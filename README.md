@@ -6,14 +6,24 @@ renders inline and takes only its rendered width, and vector plots anchored to t
 
 ## Run
 
-It's a single static page. Serve the folder and open it:
+Needs Node 20+.
 
 ```sh
-python3 -m http.server 8000   # then open http://localhost:8000
+npm install
+npm run dev        # editor at http://localhost:5173
+npm run build      # static site in dist/ (open it from any static file server)
 ```
 
-KaTeX loads from jsDelivr, so the first load needs network. Decks autosave in the browser (localStorage);
-**save** / **open** move them in and out as JSON.
+Everything, KaTeX included, is bundled; no network needed at runtime. Decks autosave in the browser
+(localStorage); **save** / **open** move them in and out as JSON.
+
+## Test
+
+```sh
+npm test           # unit tests (vitest): junctions, equation groups, undo, plain text, plots
+npm run e2e        # browser smoke tests (Playwright; builds first)
+npm run typecheck
+```
 
 ## Keys
 
@@ -30,7 +40,13 @@ KaTeX loads from jsDelivr, so the first load needs network. Decks autosave in th
 ## Layout
 
 ```
-index.html              the editor (all code inline, no build step yet)
+index.html              page markup; the editor is src/main.ts
+src/model/              grid, junctions, equations, undo history, plain text, plot specs (pure, no DOM)
+src/render/             canvas drawing, KaTeX overlay, layout
+src/tools/              one file per tool, plus the pointer dispatcher
+src/ui/                 toolbar, inspector, slide list, equation bar, modals, keyboard
+tests/unit/             vitest unit tests for src/model
+tests/e2e/              Playwright smoke tests against the built app
 reference/player/       the presentation page the slides were first built for, plus its Python grid library
 reference/*-deck/       two decks generated with that library (examples of the target output)
 CLAUDE.md               architecture, data format and roadmap, for working on this with Claude Code

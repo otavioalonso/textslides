@@ -14,11 +14,40 @@ Design priorities, in order:
 3. Two themes the owner cares about: `modern` (dark grey, orange/blue) and `c64` (purple home computer). Keep both pixel-clean.
 4. Plain-text export should stay meaningful: a slide should still read as text with no canvas.
 
-## Current state (prototype)
+## Commands
 
-`index.html` is one file: CSS, HTML and one IIFE of plain ES5-style JavaScript (~1000 lines). No dependencies
-except KaTeX from a CDN. It works and is tested in Chromium by driving real mouse and keyboard events with
-Puppeteer, but there are no automated tests in the repo yet.
+```sh
+npm install          # .npmrc sets legacy-peer-deps (npm 10 crashes on vitest 4's optional peers otherwise)
+npm run dev          # Vite dev server
+npm run build        # typecheck + static build into dist/
+npm test             # vitest unit tests (tests/unit, model only, no DOM)
+npm run e2e          # Playwright smoke tests (tests/e2e) against `vite preview` of a fresh build
+npm run typecheck    # app (tsconfig.json) and tests (tsconfig.test.json)
+```
+
+## Code layout
+
+Vite + TypeScript, no framework. KaTeX is an npm dependency, pinned to 0.16.47 (the version the prototype used
+from the CDN; equation widths in saved decks were measured with it).
+
+- `src/model/`: pure, DOM-free, unit-tested. Every cell operation takes a `Grid` (`{cols, rows, s: Slide}`)
+  explicitly: `grid.ts` (put/clear cells, junction `seg`/`route`/`drawLine`/`drawBox`, extract/paste),
+  `equations.ts` (anchor encoding, `eqAt`, `eqClear`, `putEq` with the measured width passed in), `history.ts`
+  (snapshot undo stack), `text.ts` (plain-text export), `plot.ts` (spec parser, ticks), `demo.ts`, `types.ts`.
+- `src/state.ts`: the one mutable editor state object `ed` (current doc, slide, tool, selection, cell metrics…),
+  `S()`/`G()`/`T()` accessors, `mark()` to schedule a render, and `ui`: late-bound UI functions (filled in by
+  `main.ts`) so lower layers can ask for a toolbar/inspector refresh without importing the UI.
+- `src/editor.ts`: `snap()`, `commit(pre)`, `undo`/`redo`, autosave, `fresh()`.
+- `src/render/`: `draw.ts` canvas primitives (`drawMask`, `drawGlyph`, plots), `scene.ts` the main canvas,
+  `overlay.ts` KaTeX equation overlay, `katex.ts` rendering + width measurement, `layout.ts` cell sizing.
+- `src/tools/`: `pointer.ts` dispatches canvas events to `select.ts`, `draw.ts` (box/line/brush/erase),
+  `text.ts`, `plot.ts`, `path.ts` (legacy curves); `hit.ts` has hit-testing.
+- `src/ui/`: toolbar, inspector, slide list, equation bar, modals, keyboard, status, tool hints.
+- `src/hook.ts`: type of `window.ED`, the handle tests use to read the doc and cell size.
+
+The restructure from the original single-file `index.html` (commit `9008359`) was checked by replaying a 46-step
+editing session in both and comparing doc JSON, canvas pixels, overlay and panels after every step (identical
+at device pixel ratio 1 and 2).
 
 ### Data model (saved as JSON, also in localStorage key `textmode-slide-editor-v2`)
 
@@ -51,7 +80,7 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 - Equations are KaTeX HTML in an overlay `div` (`#ov`), positioned on their cell group. Width in cells is measured
   once from the rendered HTML (`eqCells`), so an equation occupies exactly its rendered width.
 - Plots are drawn on the same canvas after the grid (`drawPlotObj`).
-- `render()` is driven by `mark()` → one `requestAnimationFrame`.
+- `render()` (in `main.ts`: canvas, overlay, thumbnails, status) is driven by `mark()` → one `requestAnimationFrame`.
 
 ### Editing model
 
@@ -73,11 +102,9 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 
 ## Roadmap (suggested order)
 
-1. **Restructure without changing behaviour**: Vite + TypeScript, split into modules
-   (`model/` grid, junctions, equations, undo; `render/` canvas, overlay; `tools/` one file per tool; `ui/`).
-   Pin KaTeX as an npm dependency instead of the CDN.
-2. **Tests**: unit tests for junction logic (box over box, line crossing a box edge), equation groups (overwrite,
-   delete, move), undo/redo; a Playwright smoke test that draws, types an equation and checks the doc JSON.
+1. ~~Restructure without changing behaviour~~ (done: Vite + TypeScript modules, KaTeX from npm).
+2. ~~Tests~~ (done: unit tests for junctions, equation groups, undo, plain text, plots; Playwright smoke tests).
+   Still open: `it.todo` for moving part of an equation group.
 3. **Presenter mode / export**: play a deck full-screen with the look of `reference/player/page.html`
    (header bar, progress footer, ←/→, theme toggle, plain-text view). Ideally export one self-contained HTML file.
    The player's slide record is `{chars, attrs, title, notes, eqs, plots, frames, heats}` (see `reference/player`).
@@ -93,6 +120,8 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 - Every user-visible operation must be undoable in one step.
 - When adding a theme colour, add it to both themes.
 - Test visually at all three sizes and both themes before calling a UI change done.
+- Keep `src/model/` free of DOM and editor state so it stays unit-testable; new grid logic goes there with tests.
+- `npm run typecheck && npm test && npm run e2e` before committing.
 
 ## Reference folder
 
