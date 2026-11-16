@@ -16,6 +16,7 @@ import { initEqBar } from './ui/eqbar';
 import { refreshInspector } from './ui/inspector';
 import { initKeyboard } from './ui/keyboard';
 import { closeModal, initModal } from './ui/modal';
+import { initPresent } from './ui/present';
 import { buildSlideList, drawThumbs, gotoSlide } from './ui/slides';
 import { updateStatus } from './ui/status';
 import { initToolbar, setTool, syncUI } from './ui/toolbar';
@@ -35,6 +36,7 @@ initKeyboard();
 initEqBar();
 initToolbar();
 initModal();
+initPresent();
 window.addEventListener('resize', layout);
 
 function start(): void {

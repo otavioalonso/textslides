@@ -30,7 +30,7 @@ export function modalOpen(): boolean {
   return $('modal').classList.contains('on');
 }
 
-function download(name: string, text: string, type: string): void {
+export function download(name: string, text: string, type: string): void {
   try {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type }));

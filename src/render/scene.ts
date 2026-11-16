@@ -1,9 +1,10 @@
 /* Draws the current slide and the editing marks (selection, caret, hover cell) on the main canvas. */
 import { ctx, cv } from '../dom';
-import { ARROWS, EQ_C, FONT } from '../model/constants';
+import { FONT } from '../model/constants';
 import type { Theme, VecObj } from '../model/types';
 import { ed, S, T } from '../state';
-import { drawGlyph, drawMask, drawPathObj, drawPlotObj, type Pen } from './draw';
+import { drawPathObj, type Pen } from './draw';
+import { drawCells, drawVecs } from './slide';
 
 export function renderCanvas(): void {
   const Th = T();
@@ -25,27 +26,8 @@ export function renderCanvas(): void {
     for (let gy = 0; gy < H; gy++) for (let gx = 0; gx < W; gx++) ctx.fillRect(gx * cwD + (cwD >> 1), gy * chD + (chD >> 1), dpx, dpx);
     ctx.globalAlpha = 1;
   }
-  const lw = Math.max(1, Math.round(cwD / 7));
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      const i = y * W + x;
-      const c = s.ch[i];
-      const m = s.mk[i];
-      const av = s.at[i] || 0;
-      const rv = av >= 4;
-      if (!c && !m && !rv) continue;
-      const X = x * cwD;
-      const Y = y * chD;
-      let col = Th.c[av & 3];
-      if (rv) { ctx.fillStyle = col; ctx.fillRect(X, Y, cwD, chD); col = Th.bg; }
-      if (c === EQ_C || c.length > 1) continue;
-      if (m && (!c || ARROWS[c])) drawMask(pen, X, Y, m, lw, col);
-      if (c && c !== ' ') drawGlyph(pen, X, Y, c, col);
-    }
-  for (const o of s.vec) {
-    if (o.t === 'path') drawPathObj(ctx, o, cwD, chD, Th.c[o.attr || 0], Math.max(1.5, cwD / 6));
-    else if (o.t === 'plot') drawPlotObj(ctx, o, cwD, chD, Th, fsD, Math.max(1.5, cwD / 6));
-  }
+  drawCells(pen, s, W, H, Th);
+  drawVecs(pen, s, Th);
   if (ed.creating) {
     const pts = ed.creating.pts.slice();
     if (ed.hover) pts.push(ed.hover.snap);

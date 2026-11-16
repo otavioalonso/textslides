@@ -17,6 +17,12 @@ npm run build      # static site in dist/ (open it from any static file server)
 Everything, KaTeX included, is bundled; no network needed at runtime. Decks autosave in the browser
 (localStorage); **save** / **open** move them in and out as JSON.
 
+**present** (or P) plays the deck full screen from the current slide; Esc returns to the editor on the slide you
+were showing. **export** downloads the same presentation as one self-contained HTML file (about 400 KB: player,
+deck, pre-rendered equations and KaTeX fonts inlined) that opens from disk with no network. In the player:
+← → / Space / PageUp / PageDown to page, Home / End, C to switch colours, T for the plain-text view, F for full
+screen; `#3` in the URL opens slide 3.
+
 ## Test
 
 ```sh
@@ -36,6 +42,7 @@ npm run typecheck
 | Shift / Alt while drawing a line | vertical-first route / arrow head |
 | Ctrl+Z, Ctrl+Shift+Z | undo, redo |
 | Ctrl+C / X / V | copy, cut, paste a selection |
+| P | present (Esc returns) |
 
 ## Layout
 
@@ -44,7 +51,9 @@ index.html              page markup; the editor is src/main.ts
 src/model/              grid, junctions, equations, undo history, plain text, plot specs (pure, no DOM)
 src/render/             canvas drawing, KaTeX overlay, layout
 src/tools/              one file per tool, plus the pointer dispatcher
-src/ui/                 toolbar, inspector, slide list, equation bar, modals, keyboard
+src/ui/                 toolbar, inspector, slide list, equation bar, modals, keyboard, present mode
+src/player/             the presentation player (bundled separately, inlined into exports)
+src/export/             builds the self-contained presentation HTML
 tests/unit/             vitest unit tests for src/model
 tests/e2e/              Playwright smoke tests against the built app
 reference/player/       the presentation page the slides were first built for, plus its Python grid library

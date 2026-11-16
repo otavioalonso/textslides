@@ -44,6 +44,16 @@ from the CDN; equation widths in saved decks were measured with it).
   `text.ts`, `plot.ts`, `path.ts` (legacy curves); `hit.ts` has hit-testing.
 - `src/ui/`: toolbar, inspector, slide list, equation bar, modals, keyboard, status, tool hints.
 - `src/hook.ts`: type of `window.ED`, the handle tests use to read the doc and cell size.
+- `src/render/slide.ts`: `drawCells` / `drawVecs` / `eqElement`, the slide drawing shared by the editor canvas and
+  the player. Change slide rendering there so editor and presentations stay identical.
+- `src/player/`: the presentation player (`main.ts`, `style.css`, `types.ts` with the `Presentation` record).
+  It must not import editor state, the DOM helpers or KaTeX: `vite.config.ts` bundles it with esbuild into the
+  `virtual:player-bundle` string, which exports inline. It reads its deck from `<script id="deck">`.
+- `src/export/presentation.ts`: `buildPresentation(doc)` → one HTML string: player JS + CSS, KaTeX CSS with the
+  woff2 fonts inlined as data URIs (loaded lazily via `import.meta.glob`, only on present/export), the deck, and
+  every equation pre-rendered with `katexHtml`. Embedded text is escaped so it cannot close a `<script>`.
+- `src/ui/present.ts`: present mode shows that same HTML in a sandboxed (`allow-scripts`) iframe over the editor;
+  the player posts `textslides:exit` with its slide index on Esc.
 
 The restructure from the original single-file `index.html` (commit `9008359`) was checked by replaying a 46-step
 editing session in both and comparing doc JSON, canvas pixels, overlay and panels after every step (identical
@@ -99,15 +109,20 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 - Plain-text export writes equations back as `$…$` source, which is longer than their cells, so that row loses alignment.
 - Downloads (`save` → download .json) do not work inside the claude.ai artifact viewer; they do work when served normally.
 - Touch input is untested.
+- Plot specs are JavaScript expressions run with `new Function`, in the editor and in exported files. A deck from
+  someone else can run code when opened; treat decks like scripts.
+- The player shrinks an equation that renders wider than its cells on a machine with different fonts, but never
+  grows one.
 
 ## Roadmap (suggested order)
 
 1. ~~Restructure without changing behaviour~~ (done: Vite + TypeScript modules, KaTeX from npm).
 2. ~~Tests~~ (done: unit tests for junctions, equation groups, undo, plain text, plots; Playwright smoke tests).
    Still open: `it.todo` for moving part of an equation group.
-3. **Presenter mode / export**: play a deck full-screen with the look of `reference/player/page.html`
-   (header bar, progress footer, ←/→, theme toggle, plain-text view). Ideally export one self-contained HTML file.
-   The player's slide record is `{chars, attrs, title, notes, eqs, plots, frames, heats}` (see `reference/player`).
+3. ~~Presenter mode / export~~ (done: present mode and self-contained HTML export with the look of
+   `reference/player/page.html`; row-by-row reveal, plain-text view, colour toggle). Not ported from the reference
+   player: per-slide titles/notes (the doc has no fields for them yet), the LaTeX/text equation toggle, the green
+   `vt` theme, hover read-outs on plots, frame animations (see step 4).
 4. **More objects**: drawdown/heat-map grids (half-block pixels, two colours; see `heat_dd` in
    `reference/weaving-deck/loom_slides.py`), braille line plots as a grid-native alternative to vector plots,
    simple frame animations.

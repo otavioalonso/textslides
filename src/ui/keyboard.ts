@@ -6,11 +6,13 @@ import { moveSel } from '../tools/select';
 import { textKey, typeStr } from '../tools/text';
 import { TOOLS } from './hints';
 import { closeModal, modalOpen } from './modal';
+import { present, presenting } from './present';
 import { setAttr, setTool, toggleRev } from './toolbar';
 
 function onKey(e: KeyboardEvent): void {
   const tg = (e.target as HTMLElement).tagName;
   if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') { if (e.key === 'Escape') (e.target as HTMLElement).blur(); return; }
+  if (presenting()) return;
   if (modalOpen()) { if (e.key === 'Escape') closeModal(); return; }
   const k = e.key;
   const mod = e.ctrlKey || e.metaKey;
@@ -52,6 +54,7 @@ function onKey(e: KeyboardEvent): void {
   }
   if (k >= '1' && k <= '4') { setAttr(+k - 1); return; }
   if (k === 'r' || k === 'R') { toggleRev(); return; }
+  if (k === 'p' || k === 'P') { present(); return; }
   const lk = k.toLowerCase();
   for (const t of TOOLS) if (t[2].toLowerCase() === lk) { setTool(t[0]); return; }
 }

@@ -1,0 +1,34 @@
+/* Presentation page, modelled on reference/player/page.html. */
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#0D0F13;color:#C9CED8;font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+header{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:center;padding:12px 16px 6px}
+.grp{display:flex;gap:6px;align-items:center}
+button{font:inherit;color:#C9CED8;background:#171A21;border:1px solid #2B303B;border-radius:6px;padding:6px 12px;cursor:pointer}
+button:hover{background:#1F2430;border-color:#3A4150}
+button[aria-pressed="true"]{background:#E5E8EF;color:#0D0F13;border-color:#E5E8EF;font-weight:600}
+button:focus-visible{outline:2px solid #7CB7FF;outline-offset:2px}
+.count{min-width:5ch;text-align:center;font-variant-numeric:tabular-nums;color:#AEB5C3}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:8px 12px;min-height:0}
+#bezel{position:relative;display:inline-block;line-height:0}
+#bezel.c64{background:#7C70DA;padding:var(--pad);border-radius:6px}
+#bezel.modern{background:#14161B;border:1px solid #2B303B;border-radius:10px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+#titlebar{display:none;line-height:1;height:28px;align-items:center;gap:7px;padding:0 12px;background:#1C1F27;border-bottom:1px solid #2B303B;color:#8B93A5;font-size:12px;white-space:nowrap;overflow:hidden}
+.modern #titlebar{display:flex}
+#titlebar i{width:11px;height:11px;border-radius:50%;display:block;flex:none}
+#titlebar span{margin-left:8px;overflow:hidden;text-overflow:ellipsis}
+#screen{position:relative;display:block;line-height:0}
+canvas{display:block}
+#eqs{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.eq{position:absolute;display:flex;align-items:center;white-space:nowrap;line-height:1;overflow:visible}
+.eq .katex{font-size:1.06em}
+.eq>span{transform-origin:left center}
+pre#plain{display:none;margin:0;font:13px/1.25 "JetBrains Mono","DejaVu Sans Mono",Menlo,Consolas,monospace;color:#D6D9E0;background:#14161B;padding:12px;border-radius:8px;overflow:auto;max-width:100%;max-height:100%;white-space:pre}
+.showplain pre#plain{display:block}
+.showplain #bezel{display:none}
+footer{padding:4px 16px 12px;text-align:center;color:#9AA2B1;font-size:13px}
+#progress{height:3px;background:#1F2430;border-radius:2px;margin:0 auto 8px;max-width:640px;overflow:hidden}
+#progress div{height:100%;background:#E5A24A;transition:width .2s}
+.fs header,.fs footer{display:none}
+.fs main{padding:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

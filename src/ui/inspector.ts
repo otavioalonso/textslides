@@ -7,7 +7,7 @@ import { HINTS } from './hints';
 
 const HELP =
   '<code>V</code> select <code>B</code> box <code>L</code> line <code>T</code> text <code>F</code> draw <code>E</code> erase <code>G</code> plot<br><br>' +
-  '<code>1–4</code> colour: normal, bright, accent, dim<br><code>R</code> highlighted bar: select cells and press R, then type in them<br><code>Ctrl+Z</code> undo · <code>Ctrl+Shift+Z</code> redo<br><code>Esc</code> leave text / cancel<br><br>' +
+  '<code>1–4</code> colour: normal, bright, accent, dim<br><code>R</code> highlighted bar: select cells and press R, then type in them<br><code>Ctrl+Z</code> undo · <code>Ctrl+Shift+Z</code> redo<br><code>Esc</code> leave text / cancel<br><code>P</code> present (Esc returns here)<br><br>' +
   '<code>$</code> in text mode opens the equation bar: type LaTeX, see it rendered above, Enter to place. Type <code>$</code> again at the start for display style. Click an equation (or double-click with select) to edit it.<br><br>' +
   'Plots are vector objects above the grid, anchored to cells.';
 

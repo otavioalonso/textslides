@@ -49,3 +49,6 @@ textarea{width:100%;font:12px/1.45 ui-monospace,Menlo,monospace;color:var(--fg);
 #mbox textarea{height:46vh}
 .row{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:900px){#main{grid-template-columns:110px 1fr}#insp{display:none}}
+#present{position:fixed;inset:0;z-index:20;background:#0D0F13;display:none}
+#present.on{display:block}
+#present iframe{display:block;border:0;width:100%;height:100%}
