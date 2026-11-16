@@ -90,3 +90,28 @@ for (const size of ['40x25', '80x24', '120x34']) {
     expect(Math.max(canvas!.width / vp.width, canvas!.height / vp.height)).toBeGreaterThan(0.6);
   });
 }
+
+test('player: notes, equations as text, plot read-out, green theme', async ({ page }) => {
+  await openEditor(page);
+  await page.fill('#stitle', 'Demo');
+  await page.fill('#snotes', 'Point at the plot.');
+  await page.selectOption('#theme', 'vt');
+  await page.locator('#cv').click({ position: { x: 5, y: 5 } }); // focus back on the slide
+  await page.keyboard.press('p');
+  const f = page.frameLocator('#present iframe');
+  await expect(f.locator('#bezel')).toHaveClass('vt');
+  await page.keyboard.press('n');
+  await expect(f.locator('#notes')).toBeVisible();
+  await expect(f.locator('#notes')).toHaveText('Demo\nPoint at the plot.');
+  await page.keyboard.press('e');
+  await expect(f.locator('.eq')).toHaveCount(0);
+  await expect(f.locator('#mathbtn')).toHaveText('equations: text');
+  await page.keyboard.press('e');
+  await expect(f.locator('.eq')).toHaveCount(3);
+  // Hovering the demo plot draws the read-out: pixels change under the plot's top-right corner.
+  const canvas = f.locator('#cv');
+  const before = await canvas.screenshot();
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.35);
+  await expect.poll(async () => Buffer.compare(before, await canvas.screenshot()) !== 0).toBe(true);
+});

@@ -12,6 +12,7 @@ Design priorities, in order:
 1. Editing should feel like asciiflow: direct, grid-snapped, fast, with undo for everything.
 2. The grid stays the source of truth. Anything that is not a character (equations, plots) is anchored to cells.
 3. Two themes the owner cares about: `modern` (dark grey, orange/blue) and `c64` (purple home computer). Keep both pixel-clean.
+   A third, `vt` (green phosphor, from the reference player), is available too.
 4. Plain-text export should stay meaningful: a slide should still read as text with no canvas.
 
 ## Commands
@@ -132,7 +133,8 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 2. ~~Tests~~ (done: unit tests for junctions, equation groups, undo, plain text, plots; Playwright smoke tests).
 3. ~~Presenter mode / export~~ (done: present mode and self-contained HTML export with the look of
    `reference/player/page.html`; row-by-row reveal, plain-text view, colour toggle). Not ported from the reference
-   player: the LaTeX/text equation toggle, the green `vt` theme, hover read-outs on plots, a notes view.
+   player: nothing left (notes view N, equations as text E, plot hover read-out and the green `vt` theme were
+   added later).
 4. ~~More objects~~ (done: heat maps / drawdowns, braille plots, frame animations).
 5. **Files**: open/save to disk with the File System Access API, deck as a readable text format
    (one file per slide?) so decks diff well in git.
@@ -141,7 +143,7 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 
 - Keep the grid exact: never let fonts decide where lines or blocks land.
 - Every user-visible operation must be undoable in one step.
-- When adding a theme colour, add it to both themes.
+- When adding a theme colour, add it to every theme (`modern`, `c64`, `vt`).
 - Test visually at all three sizes and both themes before calling a UI change done.
 - Keep `src/model/` free of DOM and editor state so it stays unit-testable; new grid logic goes there with tests.
 - `npm run typecheck && npm test && npm run e2e` before committing.

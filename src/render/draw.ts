@@ -5,7 +5,7 @@
 import { ARROWS, D, FONT, L, R, U } from '../model/constants';
 import { brailleRaster, isBraille } from '../model/braille';
 import { heatPixels } from '../model/heat';
-import { fmtTick, niceTicks, parsePlot } from '../model/plot';
+import { fmtTick, niceTicks, parsePlot, type ParsedPlot } from '../model/plot';
 import type { HeatObj, PathObj, PlotObj, Theme } from '../model/types';
 
 /** A canvas plus the cell size (device pixels) and font size to draw with. */
@@ -129,17 +129,12 @@ export function drawPathObj(
   }
 }
 
-export function drawPlotObj(
-  c: CanvasRenderingContext2D, o: PlotObj, px: number, py: number, Th: Theme, fs: number, lw: number,
-): void {
-  const P = parsePlot(o.spec);
-  if (P.style === 'braille') { drawBraillePlot(c, o, px, py, Th, fs); return; }
+/** Geometry of a vector plot in canvas pixels: outer box, axes box, and value → pixel maps. */
+export function plotFrame(o: PlotObj, P: ParsedPlot, px: number, py: number) {
   const X = o.x * px;
   const Y = o.y * py;
   const W = o.w * px;
   const H = o.h * py;
-  c.fillStyle = Th.bg;
-  c.fillRect(X, Y, W, H);
   const ml = Math.min(5 * px, W * 0.28);
   let mb = Math.min(1.4 * py, H * 0.3);
   const mt = (P.title ? 1 : 0.4) * py;
@@ -149,14 +144,67 @@ export function drawPlotObj(
   const ay = Y + mt;
   const aw = W - ml - mr;
   const ah = H - mt - mb;
+  const sx = (v: number) => ax + ((v - P.xr[0]) / (P.xr[1] - P.xr[0])) * aw;
+  const sy = (v: number) => ay + ah - ((v - P.yr[0]) / (P.yr[1] - P.yr[0])) * ah;
+  return { X, Y, W, H, ax, ay, aw, ah, sx, sy };
+}
+
+/**
+ * Hover read-out on a vector plot (player): a vertical line at data x `xv` and, per series, a dot where it
+ * crosses and its value, plus x, written in the plot's top-right corner.
+ */
+export function drawPlotHover(c: CanvasRenderingContext2D, o: PlotObj, px: number, py: number, Th: Theme, fs: number, xv: number): void {
+  const P = parsePlot(o.spec);
+  if (P.style === 'braille') return;
+  const { ax, ay, aw, ah, sx, sy } = plotFrame(o, P, px, py);
+  if (aw < 20 || ah < 20) return;
+  const X = Math.round(sx(xv)) + 0.5;
+  c.save();
+  c.strokeStyle = Th.c[1];
+  c.globalAlpha = 0.55;
+  c.lineWidth = 1;
+  c.beginPath(); c.moveTo(X, ay); c.lineTo(X, ay + ah); c.stroke();
+  c.globalAlpha = 1;
+  const cols = [Th.p, Th.q, Th.c[1], Th.c[3]];
+  const lines: [string, string][] = [['x ' + fmtTick(+xv.toPrecision(4)), Th.c[1]]];
+  P.series.forEach((s, si) => {
+    const pts = s.pts || [];
+    if (!pts.length) return;
+    let best = pts[0];
+    for (const p of pts) if (Math.abs(p[0] - xv) < Math.abs(best[0] - xv)) best = p;
+    const col = cols[si % cols.length];
+    c.fillStyle = col;
+    c.beginPath(); c.arc(sx(best[0]), sy(best[1]), Math.max(2.5, px * 0.3), 0, 6.2832); c.fill();
+    lines.push([fmtTick(+best[1].toPrecision(3)), col]);
+  });
+  c.font = fs * 0.82 + 'px ' + FONT;
+  c.textAlign = 'right';
+  c.textBaseline = 'top';
+  lines.forEach(([t, col], i) => {
+    const ty = ay + 4 + i * fs * 1.1;
+    c.fillStyle = Th.bg;
+    const w = c.measureText(t).width;
+    c.fillRect(ax + aw - 6 - w - 3, ty - 1, w + 6, fs);
+    c.fillStyle = col;
+    c.fillText(t, ax + aw - 6, ty);
+  });
+  c.restore();
+}
+
+export function drawPlotObj(
+  c: CanvasRenderingContext2D, o: PlotObj, px: number, py: number, Th: Theme, fs: number, lw: number,
+): void {
+  const P = parsePlot(o.spec);
+  if (P.style === 'braille') { drawBraillePlot(c, o, px, py, Th, fs); return; }
+  const { X, Y, W, H, ax, ay, aw, ah, sx, sy } = plotFrame(o, P, px, py);
+  c.fillStyle = Th.bg;
+  c.fillRect(X, Y, W, H);
   if (aw < 20 || ah < 20) return;
   c.font = fs * 0.82 + 'px ' + FONT;
   c.textBaseline = 'middle';
   c.lineWidth = Math.max(1, lw * 0.5);
   const xs = niceTicks(P.xr[0], P.xr[1], Math.max(2, Math.floor(aw / (px * 8))));
   const ys = niceTicks(P.yr[0], P.yr[1], Math.max(2, Math.floor(ah / (py * 2.6))));
-  const sx = (v: number) => ax + ((v - P.xr[0]) / (P.xr[1] - P.xr[0])) * aw;
-  const sy = (v: number) => ay + ah - ((v - P.yr[0]) / (P.yr[1] - P.yr[0])) * ah;
   c.strokeStyle = Th.c[3];
   c.fillStyle = Th.c[3];
   c.globalAlpha = 0.22;

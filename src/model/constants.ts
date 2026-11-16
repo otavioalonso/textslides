@@ -5,6 +5,8 @@ export const FONT = '"JetBrains Mono","DejaVu Sans Mono",Menlo,Consolas,"Liberat
 export const THEMES: Record<string, Theme> = {
   modern: { bg: '#14161B', c: ['#D6D9E0', '#FFFFFF', '#E5A24A', '#8B93A5'], p: '#E5A24A', q: '#4FA3E0' },
   c64: { bg: '#352879', c: ['#C0B8F8', '#FFFFFF', '#F0E68C', '#A096EC'], p: '#F0E68C', q: '#6FD6F2' },
+  /** Green phosphor terminal (the reference player's `vt`). */
+  vt: { bg: '#07140B', c: ['#3DDC6B', '#C9FFD6', '#FFB347', '#2E9E50'], p: '#FFB347', q: '#6FD6F2' },
 };
 
 export const ATTR_NAMES = ['normal', 'bright', 'accent', 'dim'];

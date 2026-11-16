@@ -8,15 +8,19 @@ import { eqList } from '../model/equations';
 import { slideText } from '../model/text';
 import type { Grid } from '../model/types';
 import type { Pen } from '../render/draw';
+import { drawGlyph, drawPlotHover, plotFrame } from '../render/draw';
 import { drawCells, drawVecs, eqColor, eqElement } from '../render/slide';
+import { parsePlot } from '../model/plot';
 import { eqKey, MSG_EXIT, type Presentation } from './types';
 
 const P: Presentation = JSON.parse(document.getElementById('deck')!.textContent!);
 const doc = P.doc;
 const PAGES = pages(doc);
 const N = PAGES.length;
-const THEME_ORDER = ['modern', 'c64'];
-const THEME_LABEL: Record<string, string> = { modern: 'modern', c64: 'purple' };
+const THEME_ORDER = ['modern', 'c64', 'vt'];
+const THEME_LABEL: Record<string, string> = { modern: 'modern', c64: 'purple', vt: 'green' };
+/** Bezel padding in font sizes per side (modern has a title bar instead). */
+const PAD: Record<string, number> = { modern: 0, c64: 1.6, vt: 1.1 };
 const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let page = 0;
@@ -30,6 +34,11 @@ function cur(): number {
 }
 let theme = THEMES[doc.theme] ? doc.theme : 'modern';
 let plain = false;
+let notesOn = false;
+/** Equations as LaTeX (overlay) or as their source text in the cells. */
+let eqAsText = false;
+/** Plot hover read-out: index of the plot in the slide's vec, and the data x under the pointer. */
+let hover: { k: number; xv: number } | null = null;
 let revealRows: number | null = null;
 let revTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -53,7 +62,9 @@ const viewGrp = el('div', { class: 'grp' });
 const plainBtn = el('button', { id: 'plainbtn', 'aria-pressed': 'false', title: 'Plain-text view (T)' }, 'plain text');
 const fsBtn = el('button', { id: 'fsbtn', title: 'Full screen (F)' }, 'full screen');
 const animBtn = el('button', { id: 'animbtn', title: 'Play / pause the animation (A)' }, 'pause');
-viewGrp.append(animBtn, plainBtn, fsBtn);
+const mathBtn = el('button', { id: 'mathbtn', 'aria-pressed': 'false', title: 'Equations as LaTeX or as source text (E)' }, 'equations: LaTeX');
+const notesBtn = el('button', { id: 'notesbtn', 'aria-pressed': 'false', title: 'Speaker notes (N)' }, 'notes');
+viewGrp.append(animBtn, mathBtn, notesBtn, plainBtn, fsBtn);
 if (P.embedded) viewGrp.append(el('button', { id: 'closebtn', title: 'Back to the editor (Esc)' }, '✕ edit'));
 header.append(navGrp, themeGrp, viewGrp);
 
@@ -75,8 +86,9 @@ const footer = el('footer');
 const progress = el('div', { id: 'progress' });
 const progressBar = el('div');
 progress.append(progressBar);
-footer.append(progress, document.createTextNode(
-  'Keys: ← → or Space to page · Home / End · C colours · T plain text · F full screen · A play/pause animation' + (P.embedded ? ' · Esc back to the editor' : ''),
+const notesBox = el('div', { id: 'notes', 'aria-live': 'polite' });
+footer.append(notesBox, progress, document.createTextNode(
+  'Keys: ← → or Space to page · Home / End · C colours · T plain text · N notes · E equations as text · F full screen · A play/pause animation' + (P.embedded ? ' · Esc back to the editor' : ''),
 ));
 const status = el('div', { class: 'sr', id: 'status', 'aria-live': 'polite' });
 document.body.append(header, main, footer, status);
@@ -100,12 +112,12 @@ let ratio = 0;
 function cellSize(): { cw: number; dpr: number } {
   const dpr = window.devicePixelRatio || 1;
   if (!ratio) { ctx.font = '100px ' + FONT; ratio = ctx.measureText('M').width / 100 || 0.6; }
-  const c64 = theme === 'c64';
-  const chrome = (document.body.classList.contains('fs') ? 0 : header.offsetHeight + footer.offsetHeight + 16) + (c64 ? 0 : 30);
+  const pad = PAD[theme] ?? 0;
+  const chrome = (document.body.classList.contains('fs') ? 0 : header.offsetHeight + footer.offsetHeight + 16) + (pad ? 0 : 30);
   const availW = window.innerWidth - (document.body.classList.contains('fs') ? 0 : 24);
   const availH = window.innerHeight - chrome;
-  // The c64 bezel pads by 1.6 font sizes on each side; solve for the cell width including it.
-  const padCells = c64 ? 2 * 1.6 / ratio : 0;
+  // A bezel pads by `pad` font sizes on each side, and a font size is 1/ratio cells: solve including it.
+  const padCells = (2 * pad) / ratio;
   let cw = Math.floor(Math.min((availW * dpr) / (doc.cols + padCells), (availH * dpr) / (doc.rows * 2.2 + padCells)));
   cw = Math.max(4, cw);
   return { cw, dpr };
@@ -122,7 +134,7 @@ function render(): void {
   cv.style.width = cv.width / dpr + 'px';
   cv.style.height = cv.height / dpr + 'px';
   bezel.className = theme;
-  bezel.style.setProperty('--pad', (fs / dpr) * 1.6 + 'px');
+  bezel.style.setProperty('--pad', (fs / dpr) * (PAD[theme] ?? 0) + 'px');
   titleText.textContent = P.title + ' — ' + doc.cols + '×' + doc.rows;
 
   const pen: Pen = { ctx, cw, ch, fs };
@@ -134,6 +146,20 @@ function render(): void {
   const lim = revealRows === null ? doc.rows : revealRows;
   drawCells(pen, s, doc.cols, doc.rows, Th, lim);
   drawVecs(pen, s, Th, lim);
+  if (hover && lim >= doc.rows) {
+    const o = s.vec[hover.k];
+    if (o && o.t === 'plot') drawPlotHover(ctx, o, cw, ch, Th, fs, hover.xv);
+  }
+  if (eqAsText && lim > 0) {
+    // Each equation's source, one character per cell, cut to the cells it reserves.
+    ctx.font = fs + 'px ' + FONT;
+    ctx.textBaseline = 'middle';
+    for (const g of eqList(grid(cur()))) {
+      if (g.y >= lim) continue;
+      const t = g.tex.length > g.w ? g.tex.slice(0, g.w - 1) + '…' : g.tex;
+      for (let i = 0; i < t.length; i++) drawGlyph(pen, (g.x + i) * cw, g.y * ch, t[i], eqColor(Th, g.at));
+    }
+  }
   ctx.textBaseline = 'alphabetic';
 
   // Equations: pre-rendered HTML placed on their cells, shrunk if this machine's fonts make them wider.
@@ -143,7 +169,7 @@ function render(): void {
   eqBox.style.width = cv.style.width;
   eqBox.style.height = cv.style.height;
   eqBox.style.fontSize = fs / dpr + 'px';
-  for (const g of eqList(grid(cur()))) {
+  for (const g of eqAsText ? [] : eqList(grid(cur()))) {
     const html = P.eqs[eqKey(g.tex, g.disp)] ?? '';
     const d = eqElement(g.x, g.y, g.w, cwC, chC, eqColor(Th, g.at), '<span>' + html + '</span>');
     if (g.y >= lim) d.style.visibility = 'hidden';
@@ -161,6 +187,12 @@ function render(): void {
   animBtn.textContent = playing ? 'pause' : 'play';
   animBtn.setAttribute('aria-pressed', String(!playing));
   for (const b of themeGrp.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.theme === theme));
+  const sl = doc.slides[cur()];
+  const notes = sl.notes || doc.slides[PAGES[page].slides[0]].notes || '';
+  const title = sl.title || doc.slides[PAGES[page].slides[0]].title || '';
+  notesBox.innerHTML = '';
+  if (title) notesBox.append(el('b', {}, title), document.createTextNode(notes ? '\n' : ''));
+  notesBox.append(document.createTextNode(notes || (title ? '' : 'No notes for this slide.')));
 }
 
 /* ---------------------------------------------------------------- navigation */
@@ -181,7 +213,7 @@ function go(p: number, animate = true, startFrame = 0): void {
   const next = Math.max(0, Math.min(N - 1, p));
   const changed = next !== page;
   page = next;
-  if (changed) frame = startFrame;
+  if (changed) { frame = startFrame; hover = null; }
   status.textContent = 'Slide ' + (page + 1) + ' of ' + N + ': ' + slideLabel(PAGES[page].slides[0]);
   plainPre.textContent = slideText(grid(cur()));
   runFrames();
@@ -234,6 +266,43 @@ for (const b of themeGrp.querySelectorAll('button')) b.addEventListener('click',
 plainBtn.onclick = togglePlain;
 fsBtn.onclick = toggleFullscreen;
 animBtn.onclick = togglePlay;
+mathBtn.onclick = toggleMath;
+notesBtn.onclick = toggleNotes;
+
+function toggleMath(): void {
+  eqAsText = !eqAsText;
+  mathBtn.textContent = 'equations: ' + (eqAsText ? 'text' : 'LaTeX');
+  mathBtn.setAttribute('aria-pressed', String(eqAsText));
+  render();
+}
+
+function toggleNotes(): void {
+  notesOn = !notesOn;
+  document.body.classList.toggle('shownotes', notesOn);
+  notesBtn.setAttribute('aria-pressed', String(notesOn));
+  render();
+}
+
+/** Plot read-out: which vector plot is under the pointer, and the data x there. */
+function hoverAt(e: PointerEvent): void {
+  const r = cv.getBoundingClientRect();
+  const s = doc.slides[cur()];
+  const fx = ((e.clientX - r.left) / r.width) * doc.cols;
+  const fy = ((e.clientY - r.top) / r.height) * doc.rows;
+  let next: typeof hover = null;
+  s.vec.forEach((o, k) => {
+    if (o.t !== 'plot' || fx < o.x || fx > o.x + o.w || fy < o.y || fy > o.y + o.h) return;
+    const Pp = parsePlot(o.spec);
+    if (Pp.style === 'braille') return;
+    const f = plotFrame(o, Pp, 1, 1);
+    const xv = Pp.xr[0] + ((fx - f.ax) / f.aw) * (Pp.xr[1] - Pp.xr[0]);
+    if (xv >= Pp.xr[0] && xv <= Pp.xr[1]) next = { k, xv };
+  });
+  if (next || hover) { hover = next; render(); }
+}
+cv.addEventListener('pointermove', hoverAt);
+cv.addEventListener('pointerdown', hoverAt);
+cv.addEventListener('pointerleave', () => { if (hover) { hover = null; render(); } });
 const closeBtn = document.getElementById('closebtn');
 if (closeBtn) closeBtn.onclick = exit;
 
@@ -249,6 +318,8 @@ document.addEventListener('keydown', (e) => {
   else if (k === 't' || k === 'T') togglePlain();
   else if (k === 'f' || k === 'F') toggleFullscreen();
   else if (k === 'a' || k === 'A') togglePlay();
+  else if (k === 'n' || k === 'N') toggleNotes();
+  else if (k === 'e' || k === 'E') toggleMath();
   else if (k === 'Escape' && !document.fullscreenElement) exit();
 });
 

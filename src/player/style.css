@@ -12,6 +12,10 @@ button:focus-visible{outline:2px solid #7CB7FF;outline-offset:2px}
 main{flex:1;display:flex;align-items:center;justify-content:center;padding:8px 12px;min-height:0}
 #bezel{position:relative;display:inline-block;line-height:0}
 #bezel.c64{background:#7C70DA;padding:var(--pad);border-radius:6px}
+#bezel.vt{background:#1B1D1A;padding:var(--pad);border-radius:26px;box-shadow:inset 0 0 0 2px #2A2D28,0 8px 40px rgba(0,0,0,.6)}
+.vt #screen{border-radius:18px;overflow:hidden}
+.vt #screen::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.22) 3px),radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%)}
+.vt .eq{text-shadow:0 0 5px currentColor}
 #bezel.modern{background:#14161B;border:1px solid #2B303B;border-radius:10px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6)}
 #titlebar{display:none;line-height:1;height:28px;align-items:center;gap:7px;padding:0 12px;background:#1C1F27;border-bottom:1px solid #2B303B;color:#8B93A5;font-size:12px;white-space:nowrap;overflow:hidden}
 .modern #titlebar{display:flex}
@@ -27,6 +31,9 @@ pre#plain{display:none;margin:0;font:13px/1.25 "JetBrains Mono","DejaVu Sans Mon
 .showplain pre#plain{display:block}
 .showplain #bezel{display:none}
 footer{padding:4px 16px 12px;text-align:center;color:#9AA2B1;font-size:13px}
+#notes{display:none;max-width:900px;margin:0 auto 10px;padding:8px 12px;text-align:left;white-space:pre-wrap;color:#D6D9E0;background:#171A21;border:1px solid #2B303B;border-radius:6px;font-size:15px}
+.shownotes #notes{display:block}
+#notes b{color:#fff}
 #progress{height:3px;background:#1F2430;border-radius:2px;margin:0 auto 8px;max-width:640px;overflow:hidden}
 #progress div{height:100%;background:#E5A24A;transition:width .2s}
 .fs header,.fs footer{display:none}

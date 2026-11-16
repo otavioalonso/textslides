@@ -21,8 +21,9 @@ Everything, KaTeX included, is bundled; no network needed at runtime. Decks auto
 **present** (or P) plays the deck full screen from the current slide; Esc returns to the editor on the slide you
 were showing. **export** downloads the same presentation as one self-contained HTML file (about 400 KB: player,
 deck, pre-rendered equations and KaTeX fonts inlined) that opens from disk with no network. In the player:
-← → / Space / PageUp / PageDown to page, Home / End, C to switch colours, T for the plain-text view, F for full
-screen, A to play/pause an animation; `#3` in the URL opens slide 3.
+← → / Space / PageUp / PageDown to page, Home / End, C to switch colours (modern, purple, green), T for the
+plain-text view, N for speaker notes, E to show equations as their LaTeX source, F for full screen, A to
+play/pause an animation; hovering a plot shows its values; `#3` in the URL opens slide 3.
 
 Animations: copy a slide, change it, and tick "animation frame of the previous slide" in the side panel. The player
 shows the run of frames as one page and loops it (ms per frame is set on the first slide).

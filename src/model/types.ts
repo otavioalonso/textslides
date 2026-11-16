@@ -58,7 +58,7 @@ export interface Slide {
   vec: VecObj[];
 }
 
-export type ThemeName = 'modern' | 'c64';
+export type ThemeName = 'modern' | 'c64' | 'vt';
 
 export interface Doc {
   v: 1;
