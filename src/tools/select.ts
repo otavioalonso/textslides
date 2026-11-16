@@ -2,6 +2,7 @@
 import { commit } from '../editor';
 import { eqAt, expandToEquations } from '../model/equations';
 import { clamp, clearRect, cloneGrid, extract, inRect, pasteBuf, rectOf, restoreGrid } from '../model/grid';
+import { isBox } from '../model/types';
 import { ed, G, mark, S, ui, type Drag, type PPos } from '../state';
 import { hitHandle, hitObj } from './hit';
 
@@ -50,7 +51,7 @@ export function selectMove(p: PPos): void {
     const o = s.vec[ed.selObj];
     const dfx = p.fx - d.sx;
     const dfy = p.fy - d.sy;
-    if (o.t === 'plot') {
+    if (isBox(o)) {
       o.x = clamp(Math.round(d.orig.x + dfx), 0, ed.doc.cols - o.w);
       o.y = clamp(Math.round(d.orig.y + dfy), 0, ed.doc.rows - o.h);
     } else {
@@ -59,9 +60,10 @@ export function selectMove(p: PPos): void {
     }
   } else if (d.kind === 'handle') {
     const ob = s.vec[ed.selObj];
-    if (d.h.k === 'br' && ob.t === 'plot') {
-      ob.w = clamp(Math.round(p.fx - ob.x), 4, ed.doc.cols - ob.x);
-      ob.h = clamp(Math.round(p.fy - ob.y), 3, ed.doc.rows - ob.y);
+    if (d.h.k === 'br' && isBox(ob)) {
+      const [mw, mh] = ob.t === 'plot' ? [4, 3] : [1, 1];
+      ob.w = clamp(Math.round(p.fx - ob.x), mw, ed.doc.cols - ob.x);
+      ob.h = clamp(Math.round(p.fy - ob.y), mh, ed.doc.rows - ob.y);
     } else if (d.h.k === 'pt' && ob.t === 'path') ob.pts[d.h.i] = p.snap;
   }
 }

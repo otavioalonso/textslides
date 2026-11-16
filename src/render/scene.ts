@@ -1,7 +1,7 @@
 /* Draws the current slide and the editing marks (selection, caret, hover cell) on the main canvas. */
 import { ctx, cv } from '../dom';
 import { FONT } from '../model/constants';
-import type { Theme, VecObj } from '../model/types';
+import { isBox, type Theme, type VecObj } from '../model/types';
 import { ed, S, T } from '../state';
 import { drawPathObj, type Pen } from './draw';
 import { drawCells, drawVecs } from './slide';
@@ -80,7 +80,7 @@ function drawSelObj(o: VecObj, Th: Theme): void {
   ctx.lineWidth = Math.max(1.5, dpr * 1.5);
   const hs = Math.max(5, Math.round(dpr * 4));
   const handle = (X: number, Y: number) => { ctx.fillRect(X - hs, Y - hs, hs * 2, hs * 2); ctx.strokeRect(X - hs, Y - hs, hs * 2, hs * 2); };
-  if (o.t === 'plot') {
+  if (isBox(o)) {
     ctx.setLineDash([6, 4]);
     ctx.strokeRect(o.x * cwD, o.y * chD, o.w * cwD, o.h * chD);
     ctx.setLineDash([]);

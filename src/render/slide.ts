@@ -1,7 +1,7 @@
 /* Drawing a slide's content, shared by the editor canvas, the player and exported presentations. */
 import { ARROWS, EQ_C } from '../model/constants';
 import type { Attr, Slide, Theme } from '../model/types';
-import { drawGlyph, drawMask, drawPathObj, drawPlotObj, type Pen } from './draw';
+import { drawGlyph, drawHeatObj, drawMask, drawPathObj, drawPlotObj, type Pen } from './draw';
 
 /**
  * Draw the cells of rows [0, rowLimit): bars, junction masks and glyphs. Equations are not drawn here
@@ -34,6 +34,8 @@ export function drawVecs(p: Pen, s: Slide, Th: Theme, rowLimit = Infinity): void
   for (const o of s.vec) {
     if (o.t === 'path') {
       if (Math.max(...o.pts.map((q) => q[1])) <= rowLimit) drawPathObj(ctx, o, cw, ch, Th.c[o.attr || 0], Math.max(1.5, cw / 6));
+    } else if (o.t === 'heat') {
+      if (o.y + o.h <= rowLimit) drawHeatObj(ctx, o, cw, ch, Th);
     } else if (o.t === 'plot') {
       if (o.y + o.h <= rowLimit) drawPlotObj(ctx, o, cw, ch, Th, fs, Math.max(1.5, cw / 6));
     }

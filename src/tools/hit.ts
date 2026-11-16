@@ -1,5 +1,6 @@
 import { cv } from '../dom';
 import { clamp } from '../model/grid';
+import { isBox } from '../model/types';
 import { ed, S, type PPos } from '../state';
 
 export function pos(e: { clientX: number; clientY: number }): PPos {
@@ -30,7 +31,7 @@ export function hitObj(p: PPos): number {
   const s = S();
   for (let k = s.vec.length - 1; k >= 0; k--) {
     const o = s.vec[k];
-    if (o.t === 'plot') {
+    if (isBox(o)) {
       if (p.fx >= o.x && p.fx <= o.x + o.w && p.fy >= o.y && p.fy <= o.y + o.h) return k;
     } else {
       const P = o.pts.map((q) => [q[0] * ed.cwC, q[1] * ed.chC]);
@@ -45,7 +46,7 @@ export function hitObj(p: PPos): number {
 export function hitHandle(p: PPos): { k: 'br' } | { k: 'pt'; i: number } | null {
   const o = ed.selObj >= 0 ? S().vec[ed.selObj] : null;
   if (!o) return null;
-  if (o.t === 'plot') {
+  if (isBox(o)) {
     if (Math.hypot(p.px - (o.x + o.w) * ed.cwC, p.py - (o.y + o.h) * ed.chC) < 10) return { k: 'br' };
     return null;
   }

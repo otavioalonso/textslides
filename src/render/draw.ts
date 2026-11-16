@@ -3,8 +3,10 @@
  * so they land exactly on the cell grid.
  */
 import { ARROWS, D, FONT, L, R, U } from '../model/constants';
+import { brailleRaster, isBraille } from '../model/braille';
+import { heatPixels } from '../model/heat';
 import { fmtTick, niceTicks, parsePlot } from '../model/plot';
-import type { PathObj, PlotObj, Theme } from '../model/types';
+import type { HeatObj, PathObj, PlotObj, Theme } from '../model/types';
 
 /** A canvas plus the cell size (device pixels) and font size to draw with. */
 export interface Pen {
@@ -44,6 +46,18 @@ export function drawArrowHead(p: Pen, x: number, y: number, c: string, col: stri
   ctx.fill();
 }
 
+/** Braille dots painted as squares on whole pixels (bit layout of U+2800). */
+export function drawBrailleDots(p: Pen, x: number, y: number, m: number, col: string): void {
+  const { ctx, cw, ch } = p;
+  const sz = Math.max(2, Math.round(cw * 0.3));
+  const bx = [0.28, 0.72];
+  const by = [0.125, 0.375, 0.625, 0.875];
+  const map = [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [0, 3], [1, 3]];
+  ctx.fillStyle = col;
+  for (let b = 0; b < 8; b++)
+    if (m & (1 << b)) ctx.fillRect(Math.round(x + cw * bx[map[b][0]] - sz / 2), Math.round(y + ch * by[map[b][1]] - sz / 2), sz, sz);
+}
+
 export function drawGlyph(p: Pen, x: number, y: number, c: string, col: string): void {
   const { ctx, cw, ch, fs } = p;
   ctx.fillStyle = col;
@@ -58,6 +72,7 @@ export function drawGlyph(p: Pen, x: number, y: number, c: string, col: string):
     case '▓': ctx.globalAlpha = 0.75; ctx.fillRect(x, y, cw, ch); ctx.globalAlpha = 1; return;
   }
   if (ARROWS[c]) { drawArrowHead(p, x, y, c, col); return; }
+  if (isBraille(c)) { drawBrailleDots(p, x, y, c.charCodeAt(0) - 0x2800, col); return; }
   ctx.fillText(c, x, y + ch / 2 + fs * 0.04);
 }
 
@@ -118,6 +133,7 @@ export function drawPlotObj(
   c: CanvasRenderingContext2D, o: PlotObj, px: number, py: number, Th: Theme, fs: number, lw: number,
 ): void {
   const P = parsePlot(o.spec);
+  if (P.style === 'braille') { drawBraillePlot(c, o, px, py, Th, fs); return; }
   const X = o.x * px;
   const Y = o.y * py;
   const W = o.w * px;
@@ -179,5 +195,58 @@ export function drawPlotObj(
     c.stroke();
   });
   c.restore();
+  c.textBaseline = 'alphabetic';
+}
+
+function hexRgb(h: string): [number, number, number] {
+  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+}
+
+/**
+ * Heat map: pixels one cell wide, half a cell tall, on whole device pixels. Positive values blend from the
+ * background to the primary plot colour, negative to the secondary (as in the reference player's drawdowns).
+ */
+export function drawHeatObj(c: CanvasRenderingContext2D, o: HeatObj, cw: number, ch: number, Th: Theme): void {
+  const { px } = heatPixels(o);
+  const bg = hexRgb(Th.bg);
+  const pc = hexRgb(Th.p);
+  const qc = hexRgb(Th.q);
+  c.fillStyle = Th.bg;
+  c.fillRect(o.x * cw, o.y * ch, o.w * cw, o.h * ch);
+  for (let r = 0; r < px.length; r++) {
+    const y0 = Math.round((o.y + r / 2) * ch);
+    const y1 = Math.round((o.y + (r + 1) / 2) * ch);
+    for (let k = 0; k < px[r].length; k++) {
+      const v = px[r][k];
+      if (v === null) continue;
+      const a = Math.min(1, Math.pow(Math.abs(v), 0.85));
+      const col = v >= 0 ? pc : qc;
+      c.fillStyle = 'rgb(' + col.map((cc, i) => Math.round(bg[i] + (cc - bg[i]) * a)).join(',') + ')';
+      c.fillRect((o.x + k) * cw, y0, cw, y1 - y0);
+    }
+  }
+}
+
+/** A braille plot: background, title in the first row, dots coloured per series. */
+function drawBraillePlot(c: CanvasRenderingContext2D, o: PlotObj, cw: number, ch: number, Th: Theme, fs: number): void {
+  const P = parsePlot(o.spec);
+  const R = brailleRaster(P, o.w, o.h);
+  const cols = [Th.p, Th.q, Th.c[1], Th.c[3]];
+  const pen: Pen = { ctx: c, cw, ch, fs };
+  c.fillStyle = Th.bg;
+  c.fillRect(o.x * cw, o.y * ch, o.w * cw, o.h * ch);
+  c.font = fs + 'px ' + FONT;
+  c.textBaseline = 'middle';
+  c.textAlign = 'left';
+  R.rows.forEach((line, r) => {
+    for (let k = 0; k < line.length; k++) {
+      const g = line[k];
+      if (g === ' ') continue;
+      const X = (o.x + k) * cw;
+      const Y = (o.y + r) * ch;
+      if (isBraille(g)) drawBrailleDots(pen, X, Y, g.charCodeAt(0) - 0x2800, cols[R.series[r][k] % cols.length]);
+      else drawGlyph(pen, X, Y, g, Th.c[1]);
+    }
+  });
   c.textBaseline = 'alphabetic';
 }

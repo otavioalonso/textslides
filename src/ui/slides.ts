@@ -28,7 +28,8 @@ export function drawThumbs(): void {
       }
     g.globalAlpha = 1;
     for (const o of sl.vec) {
-      if (o.t === 'plot') { g.strokeStyle = Th.q; g.strokeRect(o.x * px + 0.5, o.y * py + 0.5, o.w * px, o.h * py); }
+      if (o.t === 'heat') { g.fillStyle = Th.p; g.globalAlpha = 0.5; g.fillRect(o.x * px, o.y * py, o.w * px, o.h * py); g.globalAlpha = 1; }
+      else if (o.t === 'plot') { g.strokeStyle = Th.q; g.strokeRect(o.x * px + 0.5, o.y * py + 0.5, o.w * px, o.h * py); }
       else {
         g.strokeStyle = Th.c[o.attr || 0];
         g.lineWidth = 1;

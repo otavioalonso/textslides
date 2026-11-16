@@ -9,6 +9,8 @@ export interface ParsedPlot {
   xr: [number, number];
   yr: [number, number];
   title: string;
+  /** 'braille' draws the series as braille dots in the cells (model/braille.ts); '' is the vector plot. */
+  style: string;
   xl: string;
   yl: string;
   series: Series[];
@@ -39,7 +41,7 @@ export function parsePlot(spec: string): ParsedPlot {
   if (cache[spec]) return cache[spec];
   let xr: [number, number] | null = null;
   let yr: [number, number] | null = null;
-  const o = { title: '', xl: '', yl: '', series: [] as Series[], err: '' };
+  const o = { title: '', style: '', xl: '', yl: '', series: [] as Series[], err: '' };
   let block: Series | null = null;
   let m: RegExpMatchArray | null;
   for (const raw of spec.split('\n')) {
@@ -47,9 +49,10 @@ export function parsePlot(spec: string): ParsedPlot {
     if (!l || l[0] === '#') { block = null; continue; }
     if ((m = l.match(/^x:\s*(\S+)\s+(\S+)/i))) { xr = [+m[1], +m[2]]; block = null; continue; }
     if ((m = l.match(/^y:\s*(\S+)\s+(\S+)/i))) { yr = [+m[1], +m[2]]; block = null; continue; }
-    if ((m = l.match(/^(title|xlabel|ylabel):\s*(.*)$/i))) {
+    if ((m = l.match(/^(title|xlabel|ylabel|style):\s*(.*)$/i))) {
       const k = m[1].toLowerCase();
       if (k === 'title') o.title = m[2];
+      else if (k === 'style') o.style = m[2].trim().toLowerCase();
       else if (k === 'xlabel') o.xl = m[2];
       else o.yl = m[2];
       continue;

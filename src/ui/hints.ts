@@ -3,7 +3,7 @@ import type { ToolName } from '../state';
 /** [tool, label, key] for the toolbar. */
 export const TOOLS: [ToolName, string, string][] = [
   ['select', 'select', 'V'], ['box', 'box', 'B'], ['line', 'line', 'L'], ['text', 'text', 'T'],
-  ['brush', 'draw', 'F'], ['erase', 'erase', 'E'], ['plot', 'plot', 'G'],
+  ['brush', 'draw', 'F'], ['erase', 'erase', 'E'], ['plot', 'plot', 'G'], ['heat', 'heat', 'H'],
 ];
 
 export const HINTS: Record<ToolName, string> = {
@@ -16,4 +16,5 @@ export const HINTS: Record<ToolName, string> = {
   erase: 'Drag to erase cells.',
   path: 'Click points of a vector line; double-click or Enter to finish, Esc to cancel.',
   plot: 'Drag a rectangle to place a plot; edit its data in the panel on the right.',
+  heat: 'Drag a rectangle to place a heat map or weaving drawdown (half-cell pixels); edit its pattern on the right.',
 };

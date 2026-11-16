@@ -2,6 +2,7 @@
 import { cv } from '../dom';
 import { commit, snap } from '../editor';
 import { eqAt } from '../model/equations';
+import { isBox } from '../model/types';
 import { ed, G, mark, S } from '../state';
 import { openEq } from '../ui/eqbar';
 import { updateStatus } from '../ui/status';
@@ -35,7 +36,7 @@ function onDown(e: PointerEvent): void {
       return;
     }
     case 'path': pathDown(p, pre); return;
-    case 'plot': plotDown(p, pre); mark(); return;
+    case 'plot': case 'heat': plotDown(p, pre, ed.tool); mark(); return;
     default:
       drawDown(ed.tool, p, pre, e.shiftKey, e.altKey);
       mark();
@@ -77,7 +78,7 @@ function onDblClick(e: MouseEvent): void {
   const pg = pos(e);
   const ge = eqAt(G(), pg.x, pg.y);
   if (ge) { openEq(ge); return; }
-  if (ed.tool === 'select' && ed.selObj >= 0 && S().vec[ed.selObj].t === 'plot') {
+  if (ed.tool === 'select' && ed.selObj >= 0 && isBox(S().vec[ed.selObj])) {
     const t = document.getElementById('spec');
     if (t) t.focus();
   }

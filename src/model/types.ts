@@ -10,6 +10,20 @@ export interface PlotObj {
   spec: string;
 }
 
+/**
+ * Heat map / drawdown: a grid of square pixels, one cell wide and half a cell tall, so `w` pixel columns and
+ * `2 * h` pixel rows. Values in [-1, 1]: positive in the theme's primary plot colour, negative in the secondary,
+ * intensity by magnitude; null pixels are transparent. `spec` is described in model/heat.ts.
+ */
+export interface HeatObj {
+  t: 'heat';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  spec: string;
+}
+
 /** Legacy free vector line. The UI no longer creates these, but old decks may contain them. */
 export interface PathObj {
   t: 'path';
@@ -20,7 +34,13 @@ export interface PathObj {
   attr: Attr;
 }
 
-export type VecObj = PlotObj | PathObj;
+export type BoxObj = PlotObj | HeatObj;
+export type VecObj = BoxObj | PathObj;
+
+/** Objects placed as a rectangle of cells (moved and resized the same way). */
+export function isBox(o: VecObj): o is BoxObj {
+  return o.t !== 'path';
+}
 
 /** One slide. `ch`, `mk` and `at` are flat arrays indexed `y * cols + x`. */
 export interface Slide {

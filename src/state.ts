@@ -9,7 +9,7 @@ import type { GridCopy } from './model/grid';
 import { History } from './model/history';
 import type { Attr, Buf, Doc, Grid, Rect, Slide, Theme } from './model/types';
 
-export type ToolName = 'select' | 'box' | 'line' | 'text' | 'brush' | 'erase' | 'plot' | 'path' | 'arrow';
+export type ToolName = 'select' | 'box' | 'line' | 'text' | 'brush' | 'erase' | 'plot' | 'heat' | 'path' | 'arrow';
 
 /** Pointer position in cell units. `x`, `y` are the cell; `fx`, `fy` fractional; `px`, `py` CSS pixels. */
 export interface PPos {
@@ -27,7 +27,7 @@ export type Drag =
   | { kind: 'objmove'; pre: string; orig: any; sx: number; sy: number }
   | { kind: 'selrect'; pre: string; p0: PPos }
   | { kind: 'selmove'; pre: string; buf: Buf; base: GridCopy; r0: Rect; p0: PPos; moved: boolean }
-  | { kind: 'plotnew'; pre: string; p0: PPos; rect: Rect }
+  | { kind: 'plotnew'; pre: string; p0: PPos; rect: Rect; t: 'plot' | 'heat' }
   | { kind: 'box' | 'line' | 'brush' | 'erase' | 'arrow'; pre: string; p0: PPos; base: GridCopy; last: PPos };
 
 export interface EqEdit {
