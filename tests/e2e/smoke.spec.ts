@@ -46,8 +46,6 @@ test('text with an inline equation takes only the rendered width', async ({ page
   await expect(page.locator('#eqprev .katex')).toBeVisible();
   await page.keyboard.press('Enter');
   await expect(page.locator('#eqbar')).toBeHidden();
-  // Known bug: keys typed right after Enter can still go to the hidden equation input. Removed with the fix.
-  await page.waitForTimeout(150);
   await page.keyboard.type(' ok');
 
   const s = await page.evaluate(() => window.ED.doc.slides[0]);
@@ -74,7 +72,7 @@ test('text with an inline equation takes only the rendered width', async ({ page
   expect((await rows(page))[5].trim()).toBe('so');
 });
 
-test.fixme('clicking an equation edits it; display style with $$', async ({ page }) => {
+test('clicking an equation edits it; display style with $$', async ({ page }) => {
   await openEditor(page);
   await emptyDeck(page);
   await page.keyboard.press('t');
@@ -92,6 +90,33 @@ test.fixme('clicking an equation edits it; display style with $$', async ({ page
   await page.locator('#eqin').press('Enter');
   const anchor = await page.evaluate(() => window.ED.doc.slides[0].ch[81]);
   expect(anchor).toMatch(/^\u0002D\d+:\\sum_k x_k\^2$/);
+});
+
+test('typing straight after placing an equation loses no keys', async ({ page }) => {
+  await openEditor(page);
+  await emptyDeck(page);
+  await page.keyboard.press('t');
+  for (let y = 0; y < 6; y++) {
+    await clickCell(page, 0, y);
+    await page.keyboard.press('$');
+    await page.keyboard.type('x');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type(' abc');
+  }
+  const r = await rows(page);
+  for (let y = 0; y < 6; y++) expect(r[y].replace(/[$~]+/, 'E').trim()).toBe('E abc');
+});
+
+test('clicking elsewhere closes the equation bar and keeps the equation', async ({ page }) => {
+  await openEditor(page);
+  await emptyDeck(page);
+  await page.keyboard.press('t');
+  await clickCell(page, 2, 2);
+  await page.keyboard.press('$');
+  await page.keyboard.type('y^2');
+  await clickCell(page, 20, 10);
+  await expect(page.locator('#eqbar')).toBeHidden();
+  expect(await page.evaluate(() => window.ED.doc.slides[0].ch[2 * 80 + 2])).toMatch(/^\u0002I\d+:y\^2$/);
 });
 
 test('plot: place, edit spec, delete', async ({ page }) => {

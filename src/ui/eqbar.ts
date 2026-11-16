@@ -58,6 +58,8 @@ export function closeEq(commitIt: boolean): void {
   ed.eqEdit = null;
   eqbar.style.display = 'none';
   eqprev.style.display = 'none';
+  // A hidden input keeps focus until the browser's next frame; keys typed in between would be swallowed.
+  if (document.activeElement === eqin) eqin.blur();
   if (commitIt) {
     const tex = eqin.value.trim();
     const g = G();

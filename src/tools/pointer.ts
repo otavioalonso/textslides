@@ -12,7 +12,14 @@ import { plotDown, plotMove, plotUp } from './plot';
 import { selectDown, selectMove, selectUp } from './select';
 import { textDown } from './text';
 
+/**
+ * Set when a pointer-down opened the equation bar. The mousedown that follows would move focus off the
+ * just-focused equation input (the canvas is not focusable), closing the bar at once, so it is cancelled.
+ */
+let keepEqFocus = false;
+
 function onDown(e: PointerEvent): void {
+  keepEqFocus = false;
   if (e.button !== 0) return;
   cv.setPointerCapture(e.pointerId);
   const p = pos(e);
@@ -21,7 +28,12 @@ function onDown(e: PointerEvent): void {
   if (ed.tool !== 'text' && ed.cursor) ed.cursor = null;
   switch (ed.tool) {
     case 'select': selectDown(p, pre); return;
-    case 'text': textDown(p); return;
+    case 'text': {
+      const before = ed.eqEdit;
+      textDown(p);
+      keepEqFocus = !!ed.eqEdit && ed.eqEdit !== before;
+      return;
+    }
     case 'path': pathDown(p, pre); return;
     case 'plot': plotDown(p, pre); mark(); return;
     default:
@@ -73,6 +85,7 @@ function onDblClick(e: MouseEvent): void {
 
 export function initPointer(): void {
   cv.addEventListener('pointerdown', onDown);
+  cv.addEventListener('mousedown', (e) => { if (keepEqFocus) { keepEqFocus = false; e.preventDefault(); } });
   cv.addEventListener('pointermove', onMove);
   cv.addEventListener('pointerup', onUp);
   cv.addEventListener('pointerleave', () => { ed.hover = null; mark(); });
