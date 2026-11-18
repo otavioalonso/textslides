@@ -126,7 +126,7 @@ test('plot: place, edit spec, delete', async ({ page }) => {
   await dragCells(page, [10, 4], [40, 18]);
   await expect(page.locator('#spec')).toBeVisible();
   await page.fill('#spec', 'x: 0 1\n= x*x');
-  await page.locator('#insp h3').click();
+  await page.locator('#insp h3').first().click();
   const vec = await page.evaluate(() => window.ED.doc.slides[0].vec);
   expect(vec).toEqual([{ t: 'plot', x: 10, y: 4, w: 31, h: 15, spec: 'x: 0 1\n= x*x' }]);
   await page.keyboard.press('Delete');

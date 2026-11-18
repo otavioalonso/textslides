@@ -1,0 +1,26 @@
+# Tests the matplotlib exporter (python/textslides.py).
+name: Python exporter
+
+on:
+  push:
+    paths: ['python/**', '.github/workflows/python.yml']
+  pull_request:
+    paths: ['python/**', '.github/workflows/python.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install -e '.[test]'
+      - run: pytest -q

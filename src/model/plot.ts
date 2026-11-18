@@ -1,8 +1,25 @@
-/* Plot spec parser. See CLAUDE.md for the format. */
+/* Plot spec parser. See CLAUDE.md for the format; data files are described in plotdata.ts. */
+import { plotDataOf, type DImage, type DRule, type PlotData } from './plotdata';
 
 export interface Series {
+  /** 'line' also covers the spec's own function and number series. */
+  kind?: 'line' | 'scatter' | 'bar' | 'image' | 'hline' | 'vline';
   expr?: string;
+  /** Points of a line or scatter; a NaN y breaks the line. */
   pts: [number, number][] | null;
+  /** Index into the theme's plot colours; defaults to the series' position. */
+  color?: number;
+  label?: string;
+  dash?: boolean;
+  marker?: 'dot' | 'ring' | null;
+  /** Markers only (matplotlib linestyle 'none'). */
+  noline?: boolean;
+  /** Error bar ends per point: [low, high] in data units. */
+  err?: [number, number][];
+  bars?: { x: number[]; w: number[]; h: number[]; b: number[]; horizontal: boolean };
+  image?: DImage;
+  /** Position of an hline / vline. */
+  v?: number;
 }
 
 export interface ParsedPlot {
@@ -15,6 +32,10 @@ export interface ParsedPlot {
   yl: string;
   series: Series[];
   err: string;
+  xlog: boolean;
+  ylog: boolean;
+  /** Draw a legend for labelled series (spec `legend: off` hides it). */
+  legend: boolean;
 }
 
 /** Small seeded PRNG (mulberry32) plus a Box–Muller gaussian, so plots with noise are stable. */
@@ -36,11 +57,29 @@ export function mkRng(seed: number): { rnd: () => number; gauss: () => number } 
 }
 
 const cache: Record<string, ParsedPlot> = {};
+const dataCache = new WeakMap<PlotData, Record<string, ParsedPlot>>();
 
-export function parsePlot(spec: string): ParsedPlot {
+/** Parse a plot spec, merged with its data file if it has one (spec lines override the file's labels and ranges). */
+export function parsePlot(spec: string, data?: PlotData | null): ParsedPlot {
+  if (data) {
+    let c = dataCache.get(data);
+    if (!c) dataCache.set(data, (c = {}));
+    return c[spec] || (c[spec] = parseWithData(spec, data));
+  }
   if (cache[spec]) return cache[spec];
+  const res = parseWithData(spec, null);
+  cache[spec] = res;
+  const ks = Object.keys(cache);
+  if (ks.length > 60) delete cache[ks[0]];
+  return res;
+}
+
+function parseWithData(spec: string, data: PlotData | null): ParsedPlot {
   let xr: [number, number] | null = null;
   let yr: [number, number] | null = null;
+  let xlog: boolean | null = null;
+  let ylog: boolean | null = null;
+  let legend = true;
   const o = { title: '', style: '', xl: '', yl: '', series: [] as Series[], err: '' };
   let block: Series | null = null;
   let m: RegExpMatchArray | null;
@@ -49,6 +88,9 @@ export function parsePlot(spec: string): ParsedPlot {
     if (!l || l[0] === '#') { block = null; continue; }
     if ((m = l.match(/^x:\s*(\S+)\s+(\S+)/i))) { xr = [+m[1], +m[2]]; block = null; continue; }
     if ((m = l.match(/^y:\s*(\S+)\s+(\S+)/i))) { yr = [+m[1], +m[2]]; block = null; continue; }
+    if ((m = l.match(/^data:/i))) continue;
+    if ((m = l.match(/^(x|y)scale:\s*(\S+)/i))) { const lg = m[2].toLowerCase() === 'log'; if (m[1].toLowerCase() === 'x') xlog = lg; else ylog = lg; continue; }
+    if ((m = l.match(/^legend:\s*(\S+)/i))) { legend = !/^(off|no|false|0)$/i.test(m[1]); continue; }
     if ((m = l.match(/^(title|xlabel|ylabel|style):\s*(.*)$/i))) {
       const k = m[1].toLowerCase();
       if (k === 'title') o.title = m[2];
@@ -64,6 +106,19 @@ export function parsePlot(spec: string): ParsedPlot {
       block.pts!.push([nums[0], nums[1]]);
     }
   }
+  if (data) {
+    addData(o.series, data);
+    o.title = o.title || data.title || '';
+    o.xl = o.xl || data.xlabel || '';
+    o.yl = o.yl || data.ylabel || '';
+    if (xlog === null) xlog = data.xscale === 'log';
+    if (ylog === null) ylog = data.yscale === 'log';
+    if (!xr && data.xlim) xr = data.xlim;
+    if (!yr && data.ylim) yr = data.ylim;
+  }
+  const XL = !!xlog;
+  const YL = !!ylog;
+  if (!xr && data) xr = autoRange(o.series, 'x', XL, 0);
   if (!xr) {
     let lo = Infinity;
     let hi = -Infinity;
@@ -92,6 +147,7 @@ export function parsePlot(spec: string): ParsedPlot {
       if (isFinite(y)) s.pts.push([x, y]);
     }
   });
+  if (!yr && data) yr = autoRange(o.series, 'y', YL, 0.06);
   if (!yr) {
     let ylo = Infinity;
     let yhi = -Infinity;
@@ -101,11 +157,68 @@ export function parsePlot(spec: string): ParsedPlot {
     const pad = (yhi - ylo) * 0.06;
     yr = [ylo - pad, yhi + pad];
   }
-  const res: ParsedPlot = { ...o, xr: X, yr };
-  cache[spec] = res;
-  const ks = Object.keys(cache);
-  if (ks.length > 60) delete cache[ks[0]];
-  return res;
+  return { ...o, xr: X, yr, xlog: XL, ylog: YL, legend };
+}
+
+/** Turn a data file's series into plot series. */
+function addData(out: Series[], d: PlotData): void {
+  let auto = 0;
+  for (const s of d.series) {
+    if (s.kind === 'line' || s.kind === 'scatter') {
+      const pts: [number, number][] = s.x.map((x, i) => [x, s.y[i] ?? NaN]);
+      const err = s.yerr ? pts.map((p, i): [number, number] => [p[1] - (s.yerr![0][i] ?? 0), p[1] + (s.yerr![1][i] ?? 0)]) : undefined;
+      out.push({
+        kind: s.kind, pts, color: s.color ?? auto++, label: s.label, dash: s.dash,
+        marker: s.kind === 'scatter' ? s.marker || 'dot' : s.marker, noline: s.kind === 'scatter' || s.noline, err,
+      });
+    } else if (s.kind === 'bar') {
+      out.push({
+        kind: 'bar', pts: null, color: s.color ?? auto++, label: s.label,
+        bars: { x: s.x, w: s.width, h: s.height, b: s.x.map((_, i) => s.bottom?.[i] ?? 0), horizontal: !!s.horizontal },
+      });
+    } else if (s.kind === 'image') out.push({ kind: 'image', pts: null, image: s });
+    else if (s.kind === 'hline' || s.kind === 'vline') { const r = s as DRule; out.push({ kind: r.kind, pts: null, v: r.v, color: r.color, dash: r.dash }); }
+  }
+}
+
+/** Data range on one axis over every series, padded by `pad` of the span (multiplicatively on a log axis). */
+function autoRange(series: Series[], ax: 'x' | 'y', log: boolean, pad: number): [number, number] {
+  let lo = Infinity;
+  let hi = -Infinity;
+  const add = (v: number) => { if (isFinite(v) && (!log || v > 0)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } };
+  const k = ax === 'x' ? 0 : 1;
+  for (const s of series) {
+    for (const p of s.pts || []) if (isFinite(p[1])) add(p[k]);
+    if (ax === 'y') for (const e of s.err || []) { add(e[0]); add(e[1]); }
+    if (s.bars) {
+      const b = s.bars;
+      const along = (ax === 'x') !== b.horizontal; // the axis the bars sit along
+      b.x.forEach((x, i) => {
+        if (along) { add(x - b.w[i] / 2); add(x + b.w[i] / 2); }
+        else { add(b.b[i]); add(b.b[i] + b.h[i]); }
+      });
+    }
+    if (s.image) { const e = s.image.extent; add(ax === 'x' ? e[0] : e[2]); add(ax === 'x' ? e[1] : e[3]); }
+    if ((s.kind === 'hline' && ax === 'y') || (s.kind === 'vline' && ax === 'x')) add(s.v!);
+  }
+  if (!isFinite(lo)) return log ? [1, 10] : [0, 1];
+  if (lo === hi) return log ? [lo / 10, hi * 10] : [lo - 1, hi + 1];
+  if (log) { const f = Math.pow(hi / lo, pad); return [lo / f, hi * f]; }
+  const p = (hi - lo) * pad;
+  return [lo - p, hi + p];
+}
+
+/** Ticks on a log axis: every decade, with 2 and 5 between when the range is under three decades. */
+export function logTicks(a: number, b: number): number[] {
+  if (!(a > 0 && b > a)) return [a];
+  const out: number[] = [];
+  const steps = Math.log10(b / a) < 3 ? [1, 2, 5] : [1];
+  for (let e = Math.floor(Math.log10(a)); e <= Math.ceil(Math.log10(b)); e++)
+    for (const m of steps) {
+      const v = +(m * Math.pow(10, e)).toPrecision(6);
+      if (v >= a * (1 - 1e-9) && v <= b * (1 + 1e-9)) out.push(v);
+    }
+  return out;
 }
 
 export function niceTicks(a: number, b: number, n: number): number[] {
@@ -122,4 +235,19 @@ export function niceTicks(a: number, b: number, n: number): number[] {
 
 export function fmtTick(v: number): string {
   return String(+v.toPrecision(6));
+}
+
+/** Parse a plot object's spec together with its data. */
+export function parseOf(o: { spec: string; data?: PlotData }): ParsedPlot {
+  return parsePlot(o.spec, plotDataOf(o));
+}
+
+/** Tick label; on a log axis large and small powers are written as 1e5 / 2e-4. */
+export function fmtLogTick(v: number): string {
+  if (v !== 0 && (Math.abs(v) >= 1e4 || Math.abs(v) < 1e-3)) {
+    const e = Math.floor(Math.log10(Math.abs(v)));
+    const m = +(v / Math.pow(10, e)).toPrecision(3);
+    return (m === 1 ? '1' : String(m)) + 'e' + e;
+  }
+  return fmtTick(v);
 }

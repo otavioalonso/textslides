@@ -4,6 +4,7 @@ import { buildDemo } from '../../src/model/demo';
 import { putEq } from '../../src/model/equations';
 import { drawBox, drawLine, mkSlide, putText } from '../../src/model/grid';
 import { mkRng } from '../../src/model/plot';
+import { readPlotData } from '../../src/model/plotdata';
 import { fromText, parseDeck, toText } from '../../src/model/textformat';
 import type { Doc } from '../../src/model/types';
 
@@ -43,6 +44,16 @@ describe('text format', () => {
     d.slides[1].vec.push({ t: 'path', pts: [[1, 1], [2.5, 0.5]], smooth: true, arrow: false, dash: true, attr: 2 });
     d.slides[1].vec.push({ t: 'plot', x: 0, y: 0, w: 6, h: 3, spec: '' });
     expect(fromText(toText(d))).toEqual(d);
+  });
+
+  it('keeps a plot\'s imported data on one line after its spec', () => {
+    const d: Doc = { v: 1, cols: 10, rows: 3, theme: 'modern', slides: [mkSlide(10, 3)] };
+    const data = readPlotData({ textslides: 'plot', v: 1, title: 'T', series: [{ kind: 'line', x: [1, 2], y: [3, null] }] });
+    d.slides[0].vec.push({ t: 'plot', x: 0, y: 0, w: 8, h: 3, spec: 'yscale: log', data });
+    d.slides[0].vec.push({ t: 'plot', x: 0, y: 0, w: 8, h: 3, spec: 'data: results/a.json' });
+    const t = toText(d);
+    expect(t).toContain('\n--- plot 0 0 8 3\n  yscale: log\n  @data {"textslides":"plot"');
+    expect(fromText(t)).toEqual(JSON.parse(JSON.stringify(d)));
   });
 
   it('survives random slides', () => {

@@ -1,8 +1,11 @@
+import type { PlotData } from './plotdata';
 /** Colour index 0–3 in bits 0–1, highlighted bar (reverse video) in bit 2. */
 export type Attr = number;
 
 export interface PlotObj {
   t: 'plot';
+  /** Data imported into the deck (see plotdata.ts); a `data:` line in the spec links a file instead. */
+  data?: PlotData;
   x: number;
   y: number;
   w: number;

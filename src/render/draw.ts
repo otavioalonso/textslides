@@ -5,7 +5,8 @@
 import { ARROWS, D, FONT, L, R, U } from '../model/constants';
 import { brailleRaster, isBraille } from '../model/braille';
 import { heatPixels } from '../model/heat';
-import { fmtTick, niceTicks, parsePlot, type ParsedPlot } from '../model/plot';
+import { fmtLogTick, fmtTick, logTicks, niceTicks, parseOf, type ParsedPlot, type Series } from '../model/plot';
+import type { DImage } from '../model/plotdata';
 import type { HeatObj, PathObj, PlotObj, Theme } from '../model/types';
 
 /** A canvas plus the cell size (device pixels) and font size to draw with. */
@@ -144,8 +145,13 @@ export function plotFrame(o: PlotObj, P: ParsedPlot, px: number, py: number) {
   const ay = Y + mt;
   const aw = W - ml - mr;
   const ah = H - mt - mb;
-  const sx = (v: number) => ax + ((v - P.xr[0]) / (P.xr[1] - P.xr[0])) * aw;
-  const sy = (v: number) => ay + ah - ((v - P.yr[0]) / (P.yr[1] - P.yr[0])) * ah;
+  const lg = Math.log10;
+  const sx = P.xlog
+    ? (v: number) => ax + ((lg(v) - lg(P.xr[0])) / (lg(P.xr[1]) - lg(P.xr[0]))) * aw
+    : (v: number) => ax + ((v - P.xr[0]) / (P.xr[1] - P.xr[0])) * aw;
+  const sy = P.ylog
+    ? (v: number) => ay + ah - ((lg(v) - lg(P.yr[0])) / (lg(P.yr[1]) - lg(P.yr[0]))) * ah
+    : (v: number) => ay + ah - ((v - P.yr[0]) / (P.yr[1] - P.yr[0])) * ah;
   return { X, Y, W, H, ax, ay, aw, ah, sx, sy };
 }
 
@@ -154,7 +160,7 @@ export function plotFrame(o: PlotObj, P: ParsedPlot, px: number, py: number) {
  * crosses and its value, plus x, written in the plot's top-right corner.
  */
 export function drawPlotHover(c: CanvasRenderingContext2D, o: PlotObj, px: number, py: number, Th: Theme, fs: number, xv: number): void {
-  const P = parsePlot(o.spec);
+  const P = parseOf(o);
   if (P.style === 'braille') return;
   const { ax, ay, aw, ah, sx, sy } = plotFrame(o, P, px, py);
   if (aw < 20 || ah < 20) return;
@@ -168,11 +174,11 @@ export function drawPlotHover(c: CanvasRenderingContext2D, o: PlotObj, px: numbe
   const cols = [Th.p, Th.q, Th.c[1], Th.c[3]];
   const lines: [string, string][] = [['x ' + fmtTick(+xv.toPrecision(4)), Th.c[1]]];
   P.series.forEach((s, si) => {
-    const pts = s.pts || [];
+    const pts = (s.pts || []).filter((p) => isFinite(p[1]));
     if (!pts.length) return;
     let best = pts[0];
     for (const p of pts) if (Math.abs(p[0] - xv) < Math.abs(best[0] - xv)) best = p;
-    const col = cols[si % cols.length];
+    const col = cols[(s.color ?? si) % cols.length];
     c.fillStyle = col;
     c.beginPath(); c.arc(sx(best[0]), sy(best[1]), Math.max(2.5, px * 0.3), 0, 6.2832); c.fill();
     lines.push([fmtTick(+best[1].toPrecision(3)), col]);
@@ -194,7 +200,7 @@ export function drawPlotHover(c: CanvasRenderingContext2D, o: PlotObj, px: numbe
 export function drawPlotObj(
   c: CanvasRenderingContext2D, o: PlotObj, px: number, py: number, Th: Theme, fs: number, lw: number,
 ): void {
-  const P = parsePlot(o.spec);
+  const P = parseOf(o);
   if (P.style === 'braille') { drawBraillePlot(c, o, px, py, Th, fs); return; }
   const { X, Y, W, H, ax, ay, aw, ah, sx, sy } = plotFrame(o, P, px, py);
   c.fillStyle = Th.bg;
@@ -203,8 +209,13 @@ export function drawPlotObj(
   c.font = fs * 0.82 + 'px ' + FONT;
   c.textBaseline = 'middle';
   c.lineWidth = Math.max(1, lw * 0.5);
-  const xs = niceTicks(P.xr[0], P.xr[1], Math.max(2, Math.floor(aw / (px * 8))));
-  const ys = niceTicks(P.yr[0], P.yr[1], Math.max(2, Math.floor(ah / (py * 2.6))));
+  // Ranges may run backwards (an inverted axis, e.g. imshow's y): ticks are found on the sorted range.
+  const [x0, x1] = P.xr[0] <= P.xr[1] ? P.xr : [P.xr[1], P.xr[0]];
+  const [y0, y1] = P.yr[0] <= P.yr[1] ? P.yr : [P.yr[1], P.yr[0]];
+  const xs = P.xlog ? logTicks(x0, x1) : niceTicks(x0, x1, Math.max(2, Math.floor(aw / (px * 8))));
+  const ys = P.ylog ? logTicks(y0, y1) : niceTicks(y0, y1, Math.max(2, Math.floor(ah / (py * 2.6))));
+  const fx = P.xlog ? fmtLogTick : fmtTick;
+  const fy = P.ylog ? fmtLogTick : fmtTick;
   c.strokeStyle = Th.c[3];
   c.fillStyle = Th.c[3];
   c.globalAlpha = 0.22;
@@ -213,9 +224,9 @@ export function drawPlotObj(
   c.globalAlpha = 1;
   c.strokeRect(Math.round(ax) + 0.5, Math.round(ay) + 0.5, Math.round(aw), Math.round(ah));
   c.textAlign = 'center';
-  for (const v of xs) c.fillText(fmtTick(v), sx(v), ay + ah + py * 0.75);
+  for (const v of xs) c.fillText(fx(v), sx(v), ay + ah + py * 0.75);
   c.textAlign = 'right';
-  for (const v of ys) c.fillText(fmtTick(v), ax - px * 0.5, sy(v));
+  for (const v of ys) c.fillText(fy(v), ax - px * 0.5, sy(v));
   c.textAlign = 'left';
   if (P.title) { c.fillStyle = Th.c[1]; c.fillText(P.title, ax, Y + py * 0.45); }
   if (P.xl) { c.fillStyle = Th.c[0]; c.textAlign = 'center'; c.fillText(P.xl, ax + aw / 2, Y + H - py * 0.45); c.textAlign = 'left'; }
@@ -233,17 +244,186 @@ export function drawPlotObj(
   c.rect(ax, ay, aw, ah);
   c.clip();
   const cols = [Th.p, Th.q, Th.c[1], Th.c[3]];
-  P.series.forEach((s, si) => {
-    if (!s.pts || s.pts.length < 2) return;
-    c.strokeStyle = cols[si % cols.length];
+  // Data-file series are drawn back to front: images, bars, lines and markers, reference lines.
+  const order = (k: string | undefined) => (k === 'image' ? 0 : k === 'bar' ? 1 : k === 'hline' || k === 'vline' ? 3 : 2);
+  const byLayer = P.series.map((s, si) => ({ s, si })).sort((a, b) => order(a.s.kind) - order(b.s.kind));
+  const geo = { ax, ay, aw, ah, sx, sy, fs, lw };
+  for (const { s, si } of byLayer) {
+    if (!s.kind) {
+      // The spec's own series (functions, number rows): plain lines, as always.
+      if (!s.pts || s.pts.length < 2) continue;
+      c.strokeStyle = cols[si % cols.length];
+      c.lineWidth = lw * 1.15;
+      c.lineJoin = 'round';
+      c.beginPath();
+      s.pts.forEach((p, i) => { const a = sx(p[0]); const b = sy(p[1]); if (i) c.lineTo(a, b); else c.moveTo(a, b); });
+      c.stroke();
+      continue;
+    }
+    drawDataSeries(c, s, cols[(s.color ?? si) % cols.length], Th, geo);
+  }
+  c.restore();
+  if (P.legend) drawLegend(c, P, cols, Th, geo);
+  c.textBaseline = 'alphabetic';
+}
+
+interface Geo { ax: number; ay: number; aw: number; ah: number; sx: (v: number) => number; sy: (v: number) => number; fs: number; lw: number }
+
+function drawMarker(c: CanvasRenderingContext2D, m: 'dot' | 'ring', X: number, Y: number, col: string, bg: string, fs: number, lw: number): void {
+  c.beginPath();
+  if (m === 'dot') { c.arc(X, Y, Math.max(2, fs * 0.17), 0, 6.2832); c.fillStyle = col; c.fill(); return; }
+  c.arc(X, Y, Math.max(3, fs * 0.27), 0, 6.2832);
+  c.fillStyle = bg;
+  c.fill();
+  c.strokeStyle = col;
+  c.lineWidth = Math.max(1.2, lw * 0.75);
+  c.stroke();
+}
+
+/** One series from a data file, inside the (clipped) axes. */
+function drawDataSeries(c: CanvasRenderingContext2D, s: Series, col: string, Th: Theme, g: Geo): void {
+  const { ax, ay, aw, ah, sx, sy, fs, lw } = g;
+  if (s.kind === 'image' && s.image) { drawImage(c, s.image, Th, g); return; }
+  if (s.kind === 'bar' && s.bars) {
+    const b = s.bars;
+    c.fillStyle = col;
+    c.globalAlpha = 0.85;
+    b.x.forEach((x, i) => {
+      const lo = b.b[i];
+      const hi = b.b[i] + b.h[i];
+      const r = b.horizontal
+        ? [sx(Math.min(lo, hi)), sy(x + b.w[i] / 2), sx(Math.max(lo, hi)), sy(x - b.w[i] / 2)]
+        : [sx(x - b.w[i] / 2), sy(Math.max(lo, hi)), sx(x + b.w[i] / 2), sy(Math.min(lo, hi))];
+      if (r.every(isFinite)) {
+        const x0 = Math.round(r[0]);
+        const y0 = Math.round(r[1]);
+        c.fillRect(x0, y0, Math.max(1, Math.round(r[2]) - x0 - 1), Math.max(1, Math.round(r[3]) - y0));
+      }
+    });
+    c.globalAlpha = 1;
+    return;
+  }
+  if (s.kind === 'hline' || s.kind === 'vline') {
+    c.strokeStyle = s.color === undefined ? Th.c[3] : col;
+    c.lineWidth = Math.max(1, lw * 0.6);
+    c.setLineDash(s.dash ? [lw * 3, lw * 2.5] : []);
+    c.beginPath();
+    if (s.kind === 'hline') { const Y = Math.round(sy(s.v!)) + 0.5; c.moveTo(ax, Y); c.lineTo(ax + aw, Y); }
+    else { const X = Math.round(sx(s.v!)) + 0.5; c.moveTo(X, ay); c.lineTo(X, ay + ah); }
+    c.stroke();
+    c.setLineDash([]);
+    return;
+  }
+  const pts = s.pts || [];
+  if (s.err) {
+    c.strokeStyle = col;
+    c.lineWidth = Math.max(1, lw * 0.6);
+    const cap = Math.max(2, fs * 0.2);
+    s.err.forEach((e, i) => {
+      const X = sx(pts[i][0]);
+      const a = sy(e[0]);
+      const b = sy(e[1]);
+      if (![X, a, b].every(isFinite)) return;
+      c.beginPath();
+      c.moveTo(X, a); c.lineTo(X, b);
+      c.moveTo(X - cap, a); c.lineTo(X + cap, a);
+      c.moveTo(X - cap, b); c.lineTo(X + cap, b);
+      c.stroke();
+    });
+  }
+  if (!s.noline) {
+    c.strokeStyle = col;
     c.lineWidth = lw * 1.15;
     c.lineJoin = 'round';
+    c.lineCap = 'round';
+    c.setLineDash(s.dash ? [lw * 3, lw * 2.5] : []);
     c.beginPath();
-    s.pts.forEach((p, i) => { const a = sx(p[0]); const b = sy(p[1]); if (i) c.lineTo(a, b); else c.moveTo(a, b); });
+    let pen = false;
+    for (const p of pts) {
+      const X = sx(p[0]);
+      const Y = sy(p[1]);
+      if (!isFinite(X) || !isFinite(Y)) { pen = false; continue; } // a gap (null, or ≤ 0 on a log axis)
+      if (pen) c.lineTo(X, Y); else c.moveTo(X, Y);
+      pen = true;
+    }
     c.stroke();
+    c.setLineDash([]);
+  }
+  if (s.marker) for (const p of pts) {
+    const X = sx(p[0]);
+    const Y = sy(p[1]);
+    if (isFinite(X) && isFinite(Y)) drawMarker(c, s.marker, X, Y, col, Th.bg, fs, lw);
+  }
+}
+
+/** imshow: one rectangle per value. Diverging maps blend to the secondary colour below the middle, primary above. */
+function drawImage(c: CanvasRenderingContext2D, im: DImage, Th: Theme, g: Geo): void {
+  const z = im.z;
+  const rows = z.length;
+  const cols = rows ? z[0].length : 0;
+  if (!rows || !cols) return;
+  let lo = im.vmin;
+  let hi = im.vmax;
+  if (lo === undefined || hi === undefined) {
+    let a = Infinity;
+    let b = -Infinity;
+    for (const r of z) for (const v of r) if (v !== null && isFinite(v)) { a = Math.min(a, v); b = Math.max(b, v); }
+    lo ??= a;
+    hi ??= b;
+  }
+  const bg = hexRgb(Th.bg);
+  const pc = hexRgb(Th.p);
+  const qc = hexRgb(Th.q);
+  // Diverging maps are centred on the middle of [vmin, vmax], as in matplotlib.
+  const mid = (lo + hi) / 2;
+  const half = (hi - lo) / 2 || 1;
+  const [x0, x1, y0, y1] = im.extent;
+  const xs = Array.from({ length: cols + 1 }, (_, i) => Math.round(g.sx(x0 + ((x1 - x0) * i) / cols)));
+  const ys = Array.from({ length: rows + 1 }, (_, j) => Math.round(g.sy(y0 + ((y1 - y0) * j) / rows)));
+  for (let r = 0; r < rows; r++) {
+    const j = im.origin === 'lower' ? r : rows - 1 - r; // row r of z sits at y-step j from y0
+    for (let k = 0; k < cols; k++) {
+      const v = z[r][k];
+      if (v === null || !isFinite(v)) continue;
+      let col: [number, number, number];
+      let a: number;
+      if (im.diverging) { a = Math.min(1, Math.abs(v - mid) / half); col = v >= mid ? pc : qc; }
+      else { a = hi > lo ? Math.min(1, Math.max(0, (v - lo) / (hi - lo))) : 1; col = pc; }
+      c.fillStyle = 'rgb(' + col.map((cc, i) => Math.round(bg[i] + (cc - bg[i]) * a)).join(',') + ')';
+      const X = Math.min(xs[k], xs[k + 1]);
+      const Y = Math.min(ys[j], ys[j + 1]);
+      c.fillRect(X, Y, Math.abs(xs[k + 1] - xs[k]), Math.abs(ys[j + 1] - ys[j]));
+    }
+  }
+}
+
+/** Legend for labelled series, top left inside the axes. */
+function drawLegend(c: CanvasRenderingContext2D, P: ParsedPlot, cols: string[], Th: Theme, g: Geo): void {
+  const items = P.series.map((s, si) => ({ s, si })).filter(({ s }) => s.label);
+  if (!items.length) return;
+  const { ax, ay, fs, lw } = g;
+  c.font = fs * 0.82 + 'px ' + FONT;
+  c.textBaseline = 'middle';
+  c.textAlign = 'left';
+  const lh = fs * 1.15;
+  const sw = fs * 1.6;
+  const w = Math.max(...items.map(({ s }) => c.measureText(s.label!).width)) + sw + fs * 0.9;
+  c.fillStyle = Th.bg;
+  c.globalAlpha = 0.85;
+  c.fillRect(ax + 4, ay + 4, w, items.length * lh + fs * 0.3);
+  c.globalAlpha = 1;
+  items.forEach(({ s, si }, i) => {
+    const col = cols[(s.color ?? si) % cols.length];
+    const Y = ay + 4 + fs * 0.15 + lh * (i + 0.5);
+    const X = ax + 4 + fs * 0.3;
+    if (s.kind === 'bar') { c.fillStyle = col; c.fillRect(X, Y - fs * 0.3, sw, fs * 0.6); }
+    else {
+      if (!s.noline) { c.strokeStyle = col; c.lineWidth = lw * 1.15; c.beginPath(); c.moveTo(X, Y); c.lineTo(X + sw, Y); c.stroke(); }
+      if (s.marker) drawMarker(c, s.marker, X + sw / 2, Y, col, Th.bg, fs, lw);
+    }
+    c.fillStyle = Th.c[0];
+    c.fillText(s.label!, X + sw + fs * 0.4, Y);
   });
-  c.restore();
-  c.textBaseline = 'alphabetic';
 }
 
 function hexRgb(h: string): [number, number, number] {
@@ -277,7 +457,7 @@ export function drawHeatObj(c: CanvasRenderingContext2D, o: HeatObj, cw: number,
 
 /** A braille plot: background, title in the first row, dots coloured per series. */
 function drawBraillePlot(c: CanvasRenderingContext2D, o: PlotObj, cw: number, ch: number, Th: Theme, fs: number): void {
-  const P = parsePlot(o.spec);
+  const P = parseOf(o);
   const R = brailleRaster(P, o.w, o.h);
   const cols = [Th.p, Th.q, Th.c[1], Th.c[3]];
   const pen: Pen = { ctx: c, cw, ch, fs };

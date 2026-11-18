@@ -24,6 +24,7 @@ npm run build        # typecheck + static build into dist/
 npm test             # vitest unit tests (tests/unit, model only, no DOM)
 npm run e2e          # Playwright smoke tests (tests/e2e) against `vite preview` of a fresh build
 npm run typecheck    # app (tsconfig.json) and tests (tsconfig.test.json)
+cd python && pytest  # matplotlib exporter (needs matplotlib, numpy, pytest)
 ```
 
 ## Code layout
@@ -57,6 +58,11 @@ from the CDN; equation widths in saved decks were measured with it).
   every equation pre-rendered with `katexHtml`. Embedded text is escaped so it cannot close a `<script>`.
 - `src/ui/files.ts`: Ctrl+S / Ctrl+Shift+S / Ctrl+O with the File System Access API (keeps the file handle for the
   session), falling back to download / file chooser. The save and open dialogs also copy / paste either format.
+- `src/ui/data.ts`: plot data: the linked data folder (directory picker, handle kept in IndexedDB), polling linked
+  files every 1.5 s, import into a plot, drop a data file on the canvas.
+- `python/`: `textslides.py` (matplotlib Axes → plot data file, `save(ax, path)`), its pytest tests, `example.py`.
+  `tests/unit/fixtures/*.json` are its output for the example, read by the TypeScript tests, so the two sides
+  stay in step: regenerate them with `python example.py` when the exporter changes.
 - `src/ui/present.ts`: present mode shows that same HTML in a sandboxed (`allow-scripts`) iframe over the editor;
   the player posts `textslides:exit` with its slide index on Esc.
 
@@ -85,6 +91,11 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
   `{ t: 'plot', x, y, w, h, spec }` where `spec` is a small text format:
   `x: 0 10`, `y: -1 1`, `title:`, `xlabel:`, `ylabel:`, `= expr` (function series, may use `rnd()`/`gauss()`, seeded),
   or rows of `x y` numbers (blank line separates data series).
+  `data: path` draws a data file written by `python/textslides.py` from a matplotlib Axes (format in
+  `model/plotdata.ts`: line / scatter / bar / image / hline / vline series, labels, log scales, limits); spec lines
+  override the file's labels and ranges (`xscale: log`, `legend: off` too). `PlotObj.data` holds imported data
+  (stored in the deck); linked files are read by `ui/data.ts` into `linkedData` (not in the deck, cached in
+  localStorage) and `parseOf(o)` merges whichever applies. Exports embed linked data.
   `style: braille` makes it a braille plot: series rasterised into braille characters, 2×4 dots per cell
   (`model/braille.ts`), painted as dots and part of the plain text.
   `{ t: 'heat', x, y, w, h, spec }` is a heat map / weaving drawdown (`model/heat.ts`): pixels one cell wide and
@@ -127,6 +138,7 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
   to a file needs the File System Access API (Chromium); the file handle is not kept across reloads.
 - The text format reads a literal space in a cell back as an empty cell (they draw the same).
 - Touch input is untested.
+- Linking a data folder needs the File System Access API (Chromium); elsewhere import the data instead.
 - Plot specs are JavaScript expressions run with `new Function`, in the editor and in exported files. A deck from
   someone else can run code when opened; treat decks like scripts.
 - The player shrinks an equation that renders wider than its cells on a machine with different fonts, but never

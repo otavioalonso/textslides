@@ -8,7 +8,7 @@ test('heat tool places a drawdown that shows in plain text and in exports', asyn
   await dragCells(page, [2, 2], [13, 5]);
   await expect(page.locator('#spec')).toBeVisible();
   await page.fill('#spec', '#..\n.#.\n..#');
-  await page.locator('#insp h3').click();
+  await page.locator('#insp h3').first().click();
   const vec = await page.evaluate(() => window.ED.doc.slides[0].vec);
   expect(vec).toEqual([{ t: 'heat', x: 2, y: 2, w: 12, h: 4, spec: '#..\n.#.\n..#' }]);
   // The canvas shows both theme colours inside the box.
@@ -35,7 +35,7 @@ test('a plot with style: braille is drawn in the grid', async ({ page }) => {
   await page.keyboard.press('g');
   await dragCells(page, [1, 1], [30, 10]);
   await page.fill('#spec', 'style: braille\ntitle: wave\nx: 0 6.3\n= sin(x)');
-  await page.locator('#insp h3').click();
+  await page.locator('#insp h3').first().click();
   await page.click('#bText');
   const txt = await page.inputValue('#mt');
   expect(txt).toContain(' wave');

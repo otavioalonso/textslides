@@ -1,0 +1,16 @@
+[project]
+name = "textslides"
+version = "1"
+description = "Export matplotlib plots as data files for textmode-slides decks"
+requires-python = ">=3.9"
+dependencies = ["matplotlib>=3.5", "numpy"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["textslides"]

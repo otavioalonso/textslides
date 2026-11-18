@@ -10,7 +10,7 @@ import type { Grid } from '../model/types';
 import type { Pen } from '../render/draw';
 import { drawGlyph, drawPlotHover, plotFrame } from '../render/draw';
 import { drawCells, drawVecs, eqColor, eqElement } from '../render/slide';
-import { parsePlot } from '../model/plot';
+import { parseOf } from '../model/plot';
 import { eqKey, MSG_EXIT, type Presentation } from './types';
 
 const P: Presentation = JSON.parse(document.getElementById('deck')!.textContent!);
@@ -292,10 +292,13 @@ function hoverAt(e: PointerEvent): void {
   let next: typeof hover = null;
   s.vec.forEach((o, k) => {
     if (o.t !== 'plot' || fx < o.x || fx > o.x + o.w || fy < o.y || fy > o.y + o.h) return;
-    const Pp = parsePlot(o.spec);
+    const Pp = parseOf(o);
     if (Pp.style === 'braille') return;
     const f = plotFrame(o, Pp, 1, 1);
-    const xv = Pp.xr[0] + ((fx - f.ax) / f.aw) * (Pp.xr[1] - Pp.xr[0]);
+    const t = (fx - f.ax) / f.aw;
+    const xv = Pp.xlog
+      ? Math.pow(10, Math.log10(Pp.xr[0]) + t * (Math.log10(Pp.xr[1]) - Math.log10(Pp.xr[0])))
+      : Pp.xr[0] + t * (Pp.xr[1] - Pp.xr[0]);
     if (xv >= Pp.xr[0] && xv <= Pp.xr[1]) next = { k, xv };
   });
   if (next || hover) { hover = next; render(); }

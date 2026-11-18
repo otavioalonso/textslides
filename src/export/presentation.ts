@@ -4,6 +4,7 @@
  */
 import katexCss from 'katex/dist/katex.min.css?raw';
 import { eqList } from '../model/equations';
+import { plotDataOf } from '../model/plotdata';
 import { slideText } from '../model/text';
 import type { Doc } from '../model/types';
 import playerCss from '../player/style.css?raw';
@@ -40,7 +41,15 @@ export function presentationData(doc: Doc, opts: { start?: number; embedded?: bo
   const eqs: Record<string, string> = {};
   for (const s of doc.slides)
     for (const g of eqList({ cols: doc.cols, rows: doc.rows, s })) eqs[eqKey(g.tex, g.disp)] = katexHtml(g.tex, g.disp);
-  return { title: deckTitle(doc), doc, eqs, start: opts.start, embedded: opts.embedded };
+  // Plots read linked data files in the editor; a presentation carries the data itself.
+  const withData: Doc = {
+    ...doc,
+    slides: doc.slides.map((s) => ({
+      ...s,
+      vec: s.vec.map((o) => (o.t === 'plot' && !o.data && plotDataOf(o) ? { ...o, data: plotDataOf(o)! } : o)),
+    })),
+  };
+  return { title: deckTitle(doc), doc: withData, eqs, start: opts.start, embedded: opts.embedded };
 }
 
 /** Escape text so it cannot close the <script> or <style> element it is embedded in. */

@@ -31,12 +31,16 @@ export function brailleRaster(P: ParsedPlot, w: number, h: number): BrailleRaste
   };
   if (ph > 0 && P.xr[1] !== P.xr[0] && P.yr[1] !== P.yr[0]) {
     P.series.forEach((s, si) => {
+      const col = s.color ?? si;
       let last: [number, number] | null = null;
       for (const [x, y] of s.pts || []) {
-        const X = Math.round(((x - P.xr[0]) / (P.xr[1] - P.xr[0])) * (W - 1));
-        const Y = Math.round((1 - (y - P.yr[0]) / (P.yr[1] - P.yr[0])) * (H - 1));
-        if (last) line(last[0], last[1], X, Y, (a, b) => dot(a, b, si));
-        else dot(X, Y, si);
+        const fx = P.xlog ? (Math.log10(x) - Math.log10(P.xr[0])) / (Math.log10(P.xr[1]) - Math.log10(P.xr[0])) : (x - P.xr[0]) / (P.xr[1] - P.xr[0]);
+        const fy = P.ylog ? (Math.log10(y) - Math.log10(P.yr[0])) / (Math.log10(P.yr[1]) - Math.log10(P.yr[0])) : (y - P.yr[0]) / (P.yr[1] - P.yr[0]);
+        if (!isFinite(fx) || !isFinite(fy)) { last = null; continue; } // gap
+        const X = Math.round(fx * (W - 1));
+        const Y = Math.round((1 - fy) * (H - 1));
+        if (last && !s.noline) line(last[0], last[1], X, Y, (a, b) => dot(a, b, col));
+        else dot(X, Y, col);
         last = [X, Y];
       }
     });

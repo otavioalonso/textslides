@@ -35,12 +35,22 @@ play/pause an animation; hovering a plot shows its values; `#3` in the URL opens
 Animations: copy a slide, change it, and tick "animation frame of the previous slide" in the side panel. The player
 shows the run of frames as one page and loops it (ms per frame is set on the first slide).
 
+## Plots from your analysis
+
+Make the plot with matplotlib as usual and save it with the helper in `python/`:
+`textslides.save(ax, "results/spectrum.json")`. In the deck, a plot whose spec says `data: results/spectrum.json`
+draws it in the deck's style and theme colours (lines, markers, error bars, bars, histograms, `imshow`, reference
+lines, log axes, legend). Link the folder once (**link data folder…** in the plot's side panel) and the plot
+redraws whenever the analysis rewrites the file. You can also drop a data file on a slide, or **import** it, to
+store the data in the deck. Presentations and exports always carry the data. See `python/README.md`.
+
 ## Test
 
 ```sh
 npm test           # unit tests (vitest): junctions, equation groups, undo, plain text, plots
 npm run e2e        # browser smoke tests (Playwright; builds first)
 npm run typecheck
+cd python && pytest   # the matplotlib exporter
 ```
 
 ## Keys

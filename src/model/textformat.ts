@@ -18,7 +18,8 @@
  *   --- equations                   optional: x y I|D width tex
  *   2 9 I 12 w_i\to 1/(1-p)
  *   --- plot 47 3 31 13             vector objects: plot / heat with x y w h and the spec indented,
- *     x: 0 10                       path with its JSON indented
+ *     x: 0 10                       path with its JSON indented; a plot's imported data file follows
+ *     @data {...}                   its spec on one line
  *
  * Rows and layers are trimmed at the right and bottom. Reading is lossless except that a literal space
  * character in a cell reads back as an empty cell (they draw the same).
@@ -26,6 +27,7 @@
 import { EQ_C, GL } from './constants';
 import { eqEncode, eqParse } from './equations';
 import { mkSlide } from './grid-base';
+import { readPlotData, type PlotData } from './plotdata';
 import type { Doc, Slide, VecObj } from './types';
 
 export const MAGIC = 'textslides 1';
@@ -99,7 +101,10 @@ export function toText(doc: Doc): string {
     if (eqs.length) L.push('--- equations', ...eqs);
     for (const o of s.vec) {
       if (o.t === 'path') L.push('--- path', ...indent(JSON.stringify({ pts: o.pts, smooth: o.smooth, arrow: o.arrow, dash: o.dash, attr: o.attr })));
-      else L.push('--- ' + o.t + ' ' + o.x + ' ' + o.y + ' ' + o.w + ' ' + o.h, ...indent(o.spec));
+      else {
+        L.push('--- ' + o.t + ' ' + o.x + ' ' + o.y + ' ' + o.w + ' ' + o.h, ...indent(o.spec));
+        if (o.t === 'plot' && o.data) L.push('  @data ' + JSON.stringify(o.data)); // imported data, one line
+      }
     }
   }
   return L.join('\n') + '\n';
@@ -176,7 +181,15 @@ export function fromText(text: string): Doc {
         }
       } else if ((m = t.match(/^--- (plot|heat) (-?\d+) (-?\d+) (\d+) (\d+)$/))) {
         n++;
-        s.vec.push({ t: m[1] as 'plot' | 'heat', x: +m[2], y: +m[3], w: +m[4], h: +m[5], spec: block() });
+        const lines = block().split('\n');
+        const at = lines.findIndex((l) => l.startsWith('@data '));
+        let data: PlotData | undefined;
+        if (at >= 0) {
+          try { data = readPlotData(JSON.parse(lines[at].slice(6))); } catch { fail('bad @data line in a plot'); }
+          lines.splice(at, 1);
+        }
+        const o = { t: m[1] as 'plot' | 'heat', x: +m[2], y: +m[3], w: +m[4], h: +m[5], spec: lines.join('\n') };
+        s.vec.push(data && o.t === 'plot' ? { ...o, t: 'plot', data } : o);
       } else if (t === '--- path') {
         n++;
         const at = n;

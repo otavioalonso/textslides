@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 .DS_Store
 deck.json
+python/results/
+*.egg-info/
+.pytest_cache/

@@ -3,7 +3,7 @@ import { eqParse } from './equations';
 import { ix } from './grid-base';
 import { brailleRaster } from './braille';
 import { heatText } from './heat';
-import { parsePlot } from './plot';
+import { parseOf } from './plot';
 import type { Grid } from './types';
 
 /**
@@ -15,7 +15,7 @@ export function vecText(g: Grid): Map<number, string> {
   for (const o of g.s.vec) {
     let lines: string[];
     if (o.t === 'heat') lines = heatText(o);
-    else if (o.t === 'plot' && parsePlot(o.spec).style === 'braille') lines = brailleRaster(parsePlot(o.spec), o.w, o.h).rows;
+    else if (o.t === 'plot' && parseOf(o).style === 'braille') lines = brailleRaster(parseOf(o), o.w, o.h).rows;
     else continue;
     lines.forEach((line, r) => {
       for (let c = 0; c < line.length; c++) {
