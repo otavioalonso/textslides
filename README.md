@@ -5,6 +5,9 @@ boxes and lines that join automatically, free text, highlighted bars, brush char
 renders inline and takes only its rendered width, vector or braille plots and heat maps / weaving drawdowns
 anchored to the grid, and frame animations.
 
+Live: https://otavioalonso.github.io/textslides/ (deployed by `.github/workflows/pages.yml` on every push to the
+default branch).
+
 ## Run
 
 Needs Node 20+.
