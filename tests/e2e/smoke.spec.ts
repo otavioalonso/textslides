@@ -186,3 +186,31 @@ test('moving a selection that cuts an equation moves the whole equation', async 
   const anchors = await page.evaluate(() => window.ED.doc.slides[0].ch.filter((c) => c.charCodeAt(0) === 2).length);
   expect(anchors).toBe(3);
 });
+
+test('colour keys 5–8 give the high-contrast slots, also on bars', async ({ page }) => {
+  await openEditor(page);
+  await emptyDeck(page);
+  const pixel = (x: number, y: number) => page.evaluate(([x, y]) => {
+    const c = window.ED.cv.getContext('2d')!;
+    const d = window.devicePixelRatio;
+    return Array.from(c.getImageData(Math.floor((x + 0.5) * window.ED.cw * d), Math.floor((y + 0.2) * window.ED.ch * d), 1, 1).data.slice(0, 3)).join(',');
+  }, [x, y]);
+  await expect(page.locator('#attrs button')).toHaveCount(8);
+  await page.keyboard.press('6'); // red
+  await page.keyboard.press('f'); // draw tool; its default brush █ shows the colour exactly
+  await clickCell(page, 1, 1);
+  expect(await page.evaluate(() => window.ED.doc.slides[0].at[81])).toBe(9);
+  await expect.poll(() => pixel(1, 1)).toBe('255,110,110'); // #FF6E6E
+  await page.keyboard.press('v');
+  await dragCells(page, [1, 1], [1, 1]);
+  await page.keyboard.press('8'); // recolour to yellow
+  await page.keyboard.press('r'); // and put it on a bar
+  expect(await page.evaluate(() => window.ED.doc.slides[0].at[81])).toBe(4 | 11);
+  await page.keyboard.press('Escape');
+  await expect.poll(() => pixel(2, 1)).toBe('20,22,27'); // the neighbour stays background
+  await page.selectOption('#theme', 'c64');
+  await page.locator('#cv').click({ position: { x: 3, y: 3 } });
+  await page.keyboard.press('Escape');
+  await page.click('#bText');
+  await page.keyboard.press('Escape');
+});

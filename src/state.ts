@@ -52,6 +52,7 @@ export const ed = {
   doc: null as unknown as Doc,
   cur: 0,
   tool: 'select' as ToolName,
+  /** Current colour slot, 0–7 (see ATTR_NAMES); cells store it via atColour(). */
   attr: 0 as Attr,
   brushCh: '█',
   rev: false,

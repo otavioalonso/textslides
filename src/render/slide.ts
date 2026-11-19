@@ -1,5 +1,5 @@
 /* Drawing a slide's content, shared by the editor canvas, the player and exported presentations. */
-import { ARROWS, EQ_C } from '../model/constants';
+import { ARROWS, colourOf, EQ_C, REV } from '../model/constants';
 import type { Attr, Slide, Theme } from '../model/types';
 import { drawGlyph, drawHeatObj, drawMask, drawPathObj, drawPlotObj, type Pen } from './draw';
 
@@ -16,11 +16,11 @@ export function drawCells(p: Pen, s: Slide, cols: number, rows: number, Th: Them
       const c = s.ch[i];
       const m = s.mk[i];
       const av = s.at[i] || 0;
-      const rv = av >= 4;
+      const rv = (av & REV) !== 0;
       if (!c && !m && !rv) continue;
       const X = x * cw;
       const Y = y * ch;
-      let col = Th.c[av & 3];
+      let col = Th.c[colourOf(av)];
       if (rv) { ctx.fillStyle = col; ctx.fillRect(X, Y, cw, ch); col = Th.bg; }
       if (c === EQ_C || c.length > 1) continue;
       if (m && (!c || ARROWS[c])) drawMask(p, X, Y, m, lw, col);
@@ -57,5 +57,5 @@ export function eqElement(x: number, y: number, w: number, cw: number, ch: numbe
 
 /** Equation colour: like a glyph, drawn in the background colour on a highlighted bar. */
 export function eqColor(Th: Theme, at: Attr): string {
-  return at & 4 ? Th.bg : Th.c[at & 3];
+  return at & REV ? Th.bg : Th.c[colourOf(at)];
 }

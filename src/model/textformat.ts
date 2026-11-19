@@ -11,7 +11,7 @@
  *     first line of notes
  *   --- text                        the characters, one row per line after "|"
  *   |┌────┐  hello                  junctions are written as box-drawing glyphs, equations as their source
- *   --- colour                      optional: per cell . 1 2 3 = colour, A B C D = colour 0–3 on a bar
+ *   --- colour                      optional: per cell . 1–7 = colour slot, A–H = slot 0–7 on a bar
  *   |....22
  *   --- lines                       optional: junction mask per cell as a hex digit (. = none)
  *   |6aaaac
@@ -24,7 +24,7 @@
  * Rows and layers are trimmed at the right and bottom. Reading is lossless except that a literal space
  * character in a cell reads back as an empty cell (they draw the same).
  */
-import { EQ_C, GL } from './constants';
+import { atColour, colourOf, EQ_C, GL, REV } from './constants';
 import { eqEncode, eqParse } from './equations';
 import { mkSlide } from './grid-base';
 import { readPlotData, type PlotData } from './plotdata';
@@ -32,7 +32,7 @@ import type { Doc, Slide, VecObj } from './types';
 
 export const MAGIC = 'textslides 1';
 
-const BAR_LETTERS = 'ABCD';
+const BAR_LETTERS = 'ABCDEFGH';
 
 /** Trim only spaces (text layer) or only dots (other layers) at the right. */
 function trimLayer(rows: string[], pad: string): string[] {
@@ -86,7 +86,8 @@ export function toText(doc: Doc): string {
         }
         else if (mk) t += GL[mk] || '┼';
         else t += ' ';
-        c += at & 4 ? BAR_LETTERS[at & 3] : at & 3 ? String(at & 3) : '.';
+        const col = colourOf(at);
+        c += at & REV ? BAR_LETTERS[col] : col ? String(col) : '.';
         m += mk ? mk.toString(16) : '.';
       }
       text.push(t);
@@ -212,7 +213,7 @@ export function fromText(text: string): Doc {
         s.ch[i] = c === ' ' || (mk && c === (GL[mk] || '┼')) ? '' : c;
         const a = cr[x] || '.';
         const bar = BAR_LETTERS.indexOf(a);
-        s.at[i] = bar >= 0 ? 4 | bar : a >= '1' && a <= '3' ? +a : 0;
+        s.at[i] = bar >= 0 ? REV | atColour(bar) : a >= '1' && a <= '7' ? atColour(+a) : 0;
       }
     }
     for (const e of eqs) {

@@ -1,6 +1,6 @@
 import { $ } from '../dom';
 import { commit, redo, snap, undo } from '../editor';
-import { ATTR_NAMES } from '../model/constants';
+import { ATTR_NAMES, REV, withColour } from '../model/constants';
 import { inb, ix, resizeSlide } from '../model/grid';
 import type { Attr } from '../model/types';
 import { ed, G, mark, S, T, ui, type ToolName } from '../state';
@@ -32,7 +32,7 @@ export function setAttr(a: Attr): void {
       for (let x = 0; x < sel.w; x++)
         if (inb(g, sel.x + x, sel.y + y)) {
           const i = ix(g, sel.x + x, sel.y + y);
-          if (s.ch[i] || s.mk[i] || s.at[i] & 4) s.at[i] = (s.at[i] & 4) | a;
+          if (s.ch[i] || s.mk[i] || s.at[i] & REV) s.at[i] = withColour(s.at[i], a);
         }
   }
   const o = ed.selObj >= 0 ? s.vec[ed.selObj] : null;
@@ -56,7 +56,7 @@ export function toggleRev(): void {
       for (let x = 0; x < sel.w; x++)
         if (inb(g, sel.x + x, sel.y + y)) {
           const i = ix(g, sel.x + x, sel.y + y);
-          s.at[i] = all ? s.at[i] & 3 : s.at[i] | 4;
+          s.at[i] = all ? s.at[i] & ~REV : s.at[i] | REV;
         }
     commit(pre);
   } else ed.rev = !ed.rev;

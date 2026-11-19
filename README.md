@@ -58,7 +58,7 @@ cd python && pytest   # the matplotlib exporter
 | key | action |
 |---|---|
 | V B L T F E G H | select, box, line, text, draw (brush), erase, plot, heat map |
-| 1–4 | colour: normal, bright, accent, dim |
+| 1–8 | colour: normal, bright, accent, dim, and the high-contrast blue, red, green, yellow |
 | R | highlighted bar on the selection (or for the next typed text) |
 | $ (text tool) | open the equation bar; Enter or $ to place, $ first for display style |
 | Shift / Alt while drawing a line | vertical-first route / arrow head |

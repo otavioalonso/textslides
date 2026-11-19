@@ -1,6 +1,7 @@
 /* The equation bar: a LaTeX input drawn on the highlighted row, with a live KaTeX preview above it. */
 import { commit, snap } from '../editor';
 import { cv, eqbar, eqin, eqprev, eqtag } from '../dom';
+import { atColour, colourOf } from '../model/constants';
 import { eqClear, putEq, type EqGroup } from '../model/equations';
 import { eqCells, katexHtml } from '../render/katex';
 import { ed, G, mark, T, ui } from '../state';
@@ -10,12 +11,12 @@ export function openEq(g: EqGroup | null): void {
   const x = g ? g.x : ed.cursor!.x;
   const y = g ? g.y : ed.cursor!.y;
   const Th = T();
-  ed.eqEdit = { x, y, disp: g ? g.disp : false, ex: g || null, pre: snap(), at: g ? g.at : ed.attr };
+  ed.eqEdit = { x, y, disp: g ? g.disp : false, ex: g || null, pre: snap(), at: g ? g.at : atColour(ed.attr) };
   eqin.value = g ? g.tex : '';
   eqbar.style.background = Th.p;
   eqbar.style.color = Th.bg;
   eqprev.style.background = Th.bg;
-  eqprev.style.color = Th.c[ed.eqEdit.at & 3];
+  eqprev.style.color = Th.c[colourOf(ed.eqEdit.at)];
   eqprev.style.borderColor = Th.p;
   eqbar.style.display = 'flex';
   eqprev.style.display = 'block';

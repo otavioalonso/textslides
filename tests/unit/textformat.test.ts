@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GL } from '../../src/model/constants';
+import { atColour, GL } from '../../src/model/constants';
 import { buildDemo } from '../../src/model/demo';
 import { putEq } from '../../src/model/equations';
 import { drawBox, drawLine, mkSlide, putText } from '../../src/model/grid';
@@ -56,6 +56,17 @@ describe('text format', () => {
     expect(fromText(t)).toEqual(JSON.parse(JSON.stringify(d)));
   });
 
+  it('writes all eight colour slots, plain and on a bar', () => {
+    const d: Doc = { v: 1, cols: 16, rows: 1, theme: 'modern', slides: [mkSlide(16, 1)] };
+    for (let c = 0; c < 8; c++) {
+      putText({ cols: 16, rows: 1, s: d.slides[0] }, c, 0, 'x', atColour(c));
+      putText({ cols: 16, rows: 1, s: d.slides[0] }, 8 + c, 0, 'x', atColour(c) | 4);
+    }
+    const t = toText(d);
+    expect(t).toContain('\n--- colour\n|.1234567ABCDEFGH\n');
+    expect(fromText(t)).toEqual(d);
+  });
+
   it('survives random slides', () => {
     const r = mkRng(3);
     const pick = <T>(a: T[]) => a[Math.floor(r.rnd() * a.length)];
@@ -69,11 +80,11 @@ describe('text format', () => {
         for (let n = 0; n < 12; n++) {
           const x = Math.floor(r.rnd() * cols);
           const y = Math.floor(r.rnd() * rows);
-          const at = Math.floor(r.rnd() * 8);
+          const at = Math.floor(r.rnd() * 16); // colour slot 0–7 and the bar
           const op = Math.floor(r.rnd() * 5);
           if (op === 0) putText(g, x, y, pick(['hi', '|x|', '---', '=== ', '$a$', '█▀ ', '⠿⡀', '👍', '─┼']), at);
-          else if (op === 1) drawBox(g, { x, y }, { x: Math.floor(r.rnd() * cols), y: Math.floor(r.rnd() * rows) }, at & 3);
-          else if (op === 2) drawLine(g, { x, y }, { x: Math.floor(r.rnd() * cols), y: Math.floor(r.rnd() * rows) }, r.rnd() < 0.5, r.rnd() < 0.5, at & 3);
+          else if (op === 1) drawBox(g, { x, y }, { x: Math.floor(r.rnd() * cols), y: Math.floor(r.rnd() * rows) }, at & ~4);
+          else if (op === 2) drawLine(g, { x, y }, { x: Math.floor(r.rnd() * cols), y: Math.floor(r.rnd() * rows) }, r.rnd() < 0.5, r.rnd() < 0.5, at & ~4);
           else if (op === 3) putEq(g, x, y, pick(['x^2', '\\frac{a}{b}', 'a b  c', '\\$']), r.rnd() < 0.3, at, 1 + Math.floor(r.rnd() * 5));
           else s.at[y * cols + x] = at;
         }

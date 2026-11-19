@@ -50,7 +50,7 @@ function onKey(e: KeyboardEvent): void {
     const step: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     if (step[k]) { e.preventDefault(); moveSel(step[k][0], step[k][1], snap()); return; }
   }
-  if (k >= '1' && k <= '4') { setAttr(+k - 1); return; }
+  if (k.length === 1 && k >= '1' && k <= '8') { setAttr(+k - 1); return; }
   if (k === 'r' || k === 'R') { toggleRev(); return; }
   if (k === 'p' || k === 'P') { present(); return; }
   const lk = k.toLowerCase();

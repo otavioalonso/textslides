@@ -85,8 +85,10 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 - `mk[i]` – line-junction bitmask, `U=1 R=2 D=4 L=8`. Box and line tools set bits on both cells of each step,
   and the renderer draws the right junction (┼ ├ ┐ …) from the mask. This is what makes lines join.
   Arrow heads are ordinary characters (▶ ◀ ▲ ▼) drawn over the mask.
-- `at[i]` – style: bits 0–1 colour index (normal, bright, accent, dim), bit 2 (`4`) highlighted bar
-  (reverse video: cell filled with the colour, glyph in the background colour).
+- `at[i]` – style: a colour slot 0–7 (normal, bright, accent, dim, then the high-contrast blue, red, green, yellow)
+  stored in bits 0–1 plus bit 3 for the slot's high bit, and bit 2 (`4`) the highlighted bar (reverse video: cell
+  filled with the colour, glyph in the background colour). Use `colourOf` / `atColour` / `withColour` from
+  `model/constants.ts`; slots 0–3 keep their old values, so old decks read unchanged. `ed.attr` is the slot.
 - `vec` – vector objects above the grid, in cell coordinates:
   `{ t: 'plot', x, y, w, h, spec }` where `spec` is a small text format:
   `x: 0 10`, `y: -1 1`, `title:`, `xlabel:`, `ylabel:`, `= expr` (function series, may use `rnd()`/`gauss()`, seeded),
@@ -122,7 +124,7 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
   which pushes undo only if something changed. Simple, robust, fine at current sizes; may need diffing later.
 - Drag tools copy the grid at pointer-down (`cloneGrid`) and redraw from that copy on every move.
 - Text tool: typing writes cells; `$` opens the equation bar (`#eqbar` input with live KaTeX preview `#eqprev`).
-- Select tool: rectangle selection, drag to move, arrow keys nudge, R toggles bar, 1–4 recolour.
+- Select tool: rectangle selection, drag to move, arrow keys nudge, R toggles bar, 1–8 recolour.
   Clicking an equation selects its whole group; a drag rectangle grows to cover any equation it cuts
   (`expandToEquations`), and pasting over an equation removes it, so groups never split.
 - Copy / paste (`model/clipboard.ts`, keys in `ui/keyboard.ts`): Ctrl+C takes the selected object, or the selected
@@ -167,7 +169,8 @@ equations, aligned plain-text export of equations, touch input, diff-based undo 
 
 - Keep the grid exact: never let fonts decide where lines or blocks land.
 - Every user-visible operation must be undoable in one step.
-- When adding a theme colour, add it to every theme (`modern`, `c64`, `vt`).
+- When adding a theme colour, add it to every theme (`modern`, `c64`, `vt`); the high-contrast slots are tested
+  to stay at a WCAG contrast of 6:1 or more against each background.
 - Test visually at all three sizes and both themes before calling a UI change done.
 - Keep `src/model/` free of DOM and editor state so it stays unit-testable; new grid logic goes there with tests.
 - `npm run typecheck && npm test && npm run e2e` before committing.

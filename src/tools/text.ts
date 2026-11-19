@@ -3,6 +3,7 @@
  * and any cursor movement ends the run.
  */
 import { pushUndo, save, snap } from '../editor';
+import { atColour, REV } from '../model/constants';
 import { eqAt, eqClear } from '../model/equations';
 import { ix, putCh } from '../model/grid';
 import { ed, G, mark, S, ui, type PPos } from '../state';
@@ -38,7 +39,7 @@ export function typeStr(str: string): void {
     if (c === '\n') { cur.y = Math.min(ed.doc.rows - 1, cur.y + 1); cur.x = ed.textX0; continue; }
     if (cur.x >= ed.doc.cols) break;
     const old = S().at[ix(g, cur.x, cur.y)] || 0;
-    putCh(g, cur.x, cur.y, c === ' ' ? '' : c, ed.attr | (ed.rev ? 4 : old & 4));
+    putCh(g, cur.x, cur.y, c === ' ' ? '' : c, atColour(ed.attr) | (ed.rev ? REV : old & REV));
     cur.x++;
   }
   afterType();

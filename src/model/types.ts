@@ -101,8 +101,8 @@ export interface Buf {
 
 export interface Theme {
   bg: string;
-  /** normal, bright, accent, dim */
-  c: [string, string, string, string];
+  /** Colour slots: normal, bright, accent, dim, blue, red, green, yellow (ATTR_NAMES). */
+  c: string[];
   /** primary and secondary plot colours */
   p: string;
   q: string;

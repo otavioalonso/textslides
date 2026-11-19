@@ -1,6 +1,7 @@
 /* Slide list: thumbnails and the new / copy / reorder / delete buttons. */
 import { $ } from '../dom';
 import { commit, snap } from '../editor';
+import { colourOf } from '../model/constants';
 import { slideLabelNo } from '../model/deck';
 import { mkSlide } from '../model/grid';
 import { ed, mark, S, T, ui } from '../state';
@@ -26,7 +27,7 @@ export function drawThumbs(): void {
       for (let x = 0; x < doc.cols; x++) {
         const i = y * doc.cols + x;
         if (!sl.ch[i] && !sl.mk[i]) continue;
-        g.fillStyle = Th.c[(sl.at[i] || 0) & 3];
+        g.fillStyle = Th.c[colourOf(sl.at[i] || 0)];
         g.globalAlpha = sl.ch[i] && sl.ch[i] !== ' ' ? 0.8 : 0.5;
         g.fillRect(x * px, y * py, px, py);
       }
