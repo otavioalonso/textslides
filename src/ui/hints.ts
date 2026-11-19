@@ -7,7 +7,7 @@ export const TOOLS: [ToolName, string, string][] = [
 ];
 
 export const HINTS: Record<ToolName, string> = {
-  select: 'Drag to select cells (R toggles a highlighted bar on them), drag a selection to move it (arrow keys nudge, Delete clears, Ctrl+C/X/V). Click a vector object to select it.',
+  select: 'Drag to select cells (R toggles a highlighted bar on them), drag a selection to move it (arrow keys nudge, Delete clears). Click an object to select it. Ctrl+C / X / V copy cells and the objects inside them, or the selected object; paste on any slide.',
   box: 'Drag a rectangle. Edges join automatically with neighbouring lines.',
   line: 'Drag from start to end. Route is horizontal first; hold Shift for vertical first, Alt for an arrow head.',
   arrow: 'Like line, with an arrow head at the end.',

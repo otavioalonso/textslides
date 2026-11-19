@@ -6,6 +6,7 @@
 import { THEMES } from './model/constants';
 import type { EqGroup } from './model/equations';
 import type { GridCopy } from './model/grid';
+import type { Clip } from './model/clipboard';
 import { History } from './model/history';
 import type { Attr, Buf, Doc, Grid, Rect, Slide, Theme } from './model/types';
 
@@ -67,7 +68,8 @@ export const ed = {
   creating: null as Creating | null,
   lastClick: 0,
   lastClickPos: null as [number, number] | null,
-  clip: null as Buf | null,
+  /** Copied cells and objects; kept when switching slides (and decks), so it pastes anywhere. */
+  clip: null as Clip | null,
   caretOn: true,
   /** Signature of the equation overlay last built; '' forces a rebuild. */
   eqSig: '',

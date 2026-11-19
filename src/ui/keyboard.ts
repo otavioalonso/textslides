@@ -1,5 +1,6 @@
 import { commit, redo, snap, undo } from '../editor';
-import { clearRect, extract, pasteBuf } from '../model/grid';
+import { copyObject, copyRegion, objectsIn, pasteClip } from '../model/clipboard';
+import { clearRect } from '../model/grid';
 import { ed, G, mark, S, ui } from '../state';
 import { finishPath } from '../tools/path';
 import { moveSel } from '../tools/select';
@@ -28,22 +29,15 @@ function onKey(e: KeyboardEvent): void {
     if (k === 'Escape') { ed.creating = null; mark(); return; }
   }
   const g = G();
-  if (mod && (k === 'c' || k === 'x') && ed.sel) {
-    ed.clip = extract(g, ed.sel);
-    if (k === 'x') { const pre = snap(); clearRect(g, ed.sel); commit(pre); }
+  const lower = k.toLowerCase();
+  if (mod && (lower === 'c' || lower === 'x') && (ed.selObj >= 0 || ed.sel)) {
     e.preventDefault();
-    mark();
+    copySelection(lower === 'x');
     return;
   }
-  if (mod && k === 'v' && ed.clip) {
+  if (mod && lower === 'v' && ed.clip) {
     e.preventDefault();
-    const pre = snap();
-    const px = ed.sel ? ed.sel.x : ed.hover ? ed.hover.x : 0;
-    const py = ed.sel ? ed.sel.y : ed.hover ? ed.hover.y : 0;
-    pasteBuf(g, ed.clip, px, py);
-    ed.sel = { x: px, y: py, w: ed.clip.w, h: ed.clip.h };
-    commit(pre);
-    mark();
+    pasteClipboard();
     return;
   }
   if (mod) return;
@@ -61,6 +55,41 @@ function onKey(e: KeyboardEvent): void {
   if (k === 'p' || k === 'P') { present(); return; }
   const lk = k.toLowerCase();
   for (const t of TOOLS) if (t[2].toLowerCase() === lk) { setTool(t[0]); return; }
+}
+
+/** Copy (or cut) the selected object, or the selected cells with the objects lying inside them. */
+function copySelection(cut: boolean): void {
+  const g = G();
+  const s = S();
+  const pre = snap();
+  if (ed.selObj >= 0) {
+    ed.clip = copyObject(s.vec[ed.selObj]);
+    if (cut) { s.vec.splice(ed.selObj, 1); ed.selObj = -1; ui.refreshInspector(); }
+  } else if (ed.sel) {
+    ed.clip = copyRegion(g, ed.sel);
+    if (cut) {
+      for (const i of objectsIn(g, ed.sel).reverse()) s.vec.splice(i, 1);
+      clearRect(g, ed.sel);
+    }
+  } else return;
+  if (cut) commit(pre);
+  const n = ed.clip.objs.length;
+  ed.msg = (cut ? 'cut ' : 'copied ') + [ed.clip.buf ? 'cells' : '', n ? n + (n > 1 ? ' objects' : ' object') : ''].filter(Boolean).join(' and ') +
+    ' · Ctrl+V pastes, also on another slide';
+  mark();
+}
+
+/** Paste at the selection's corner, or where the clip was copied from. */
+function pasteClipboard(): void {
+  const c = ed.clip!;
+  const pre = snap();
+  const r = pasteClip(G(), c, ed.sel ? ed.sel.x : c.x, ed.sel ? ed.sel.y : c.y);
+  if (c.buf) { ed.sel = r.rect; ed.selObj = -1; }
+  else if (r.objs.length) { ui.setTool('select'); ed.sel = null; ed.selObj = r.objs[r.objs.length - 1]; }
+  commit(pre);
+  ui.refreshInspector();
+  ed.msg = 'pasted';
+  mark();
 }
 
 function onPaste(e: ClipboardEvent): void {

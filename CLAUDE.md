@@ -36,7 +36,7 @@ from the CDN; equation widths in saved decks were measured with it).
   explicitly: `grid.ts` (put/clear cells, junction `seg`/`route`/`drawLine`/`drawBox`, extract/paste),
   `equations.ts` (anchor encoding, `eqAt`, `eqClear`, `putEq` with the measured width passed in), `history.ts`
   (snapshot undo stack), `text.ts` (plain-text export, incl. `vecText`), `plot.ts` (spec parser, ticks),
-  `heat.ts`, `braille.ts`, `deck.ts` (pages/frames), `textformat.ts` (the `.tslides` format: `toText`,
+  `heat.ts`, `braille.ts`, `deck.ts` (pages/frames), `clipboard.ts` (copy/paste of cells + objects), `textformat.ts` (the `.tslides` format: `toText`,
   `fromText`, `parseDeck` for either format), `demo.ts`, `types.ts`.
 - `src/state.ts`: the one mutable editor state object `ed` (current doc, slide, tool, selection, cell metrics…),
   `S()`/`G()`/`T()` accessors, `mark()` to schedule a render, and `ui`: late-bound UI functions (filled in by
@@ -125,6 +125,10 @@ doc = { v: 1, cols: 80, rows: 24, theme: 'modern' | 'c64',
 - Select tool: rectangle selection, drag to move, arrow keys nudge, R toggles bar, 1–4 recolour.
   Clicking an equation selects its whole group; a drag rectangle grows to cover any equation it cuts
   (`expandToEquations`), and pasting over an equation removes it, so groups never split.
+- Copy / paste (`model/clipboard.ts`, keys in `ui/keyboard.ts`): Ctrl+C takes the selected object, or the selected
+  cells plus every object lying entirely inside them; the clip (`ed.clip`) survives slide changes. Ctrl+V pastes at
+  the selection's corner, else where the clip was copied from (so a copy lands in the same place on another
+  slide), kept on the slide. Ctrl+X also removes what it copied.
 - Slides have optional `title` and `notes` (side panel when nothing is selected).
 - Animations: a slide with `frame: true` is the next frame of the slide before it; the head slide's `delay` is the
   ms per frame. `model/deck.ts` (`pages`, `pageOf`, `slideLabelNo`) groups slides into player pages; the slide

@@ -15,7 +15,7 @@ button.on kbd{opacity:.7}
 input#brush{width:34px;text-align:center;padding:4px 2px;cursor:text;font-family:ui-monospace,Menlo,monospace}
 label.ck{display:flex;gap:4px;align-items:center;color:var(--dim);cursor:pointer}
 #main{display:grid;grid-template-columns:150px 1fr 270px;min-height:0}
-#side{border-right:1px solid var(--line);background:var(--panel);overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+#side{border-right:1px solid var(--line);background:var(--panel);overflow:auto;padding:8px 8px 0;display:flex;flex-direction:column;gap:8px;scroll-padding-bottom:72px}
 #slides{display:flex;flex-direction:column;gap:8px}
 .th{position:relative;border:1px solid var(--line);border-radius:6px;padding:3px;cursor:pointer;background:#0f1117}
 .th.on{border-color:var(--acc)}
@@ -23,7 +23,8 @@ label.ck{display:flex;gap:4px;align-items:center;color:var(--dim);cursor:pointer
 .th.fr::before{content:'';position:absolute;left:-10px;top:50%;width:7px;border-top:1px solid var(--dim)}
 .th canvas{display:block;width:100%;height:auto;border-radius:3px}
 .th span{position:absolute;left:6px;top:4px;font:11px ui-monospace,Menlo,monospace;color:var(--dim)}
-#sbtn{display:flex;flex-wrap:wrap;gap:4px}
+/* Slide buttons stay at the bottom of the panel, visible while the thumbnails scroll under them. */
+#sbtn{display:flex;flex-wrap:wrap;gap:4px;position:sticky;bottom:0;margin-top:auto;padding:8px 0;background:var(--panel);border-top:1px solid var(--line);z-index:1}
 #sbtn button{padding:3px 7px}
 #stage{position:relative;display:grid;place-items:center;min-width:0;min-height:0;overflow:hidden;padding:12px}
 #wrap{position:relative;box-shadow:0 0 0 1px #2a3040,0 20px 60px rgba(0,0,0,.5);border-radius:2px}

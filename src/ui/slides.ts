@@ -5,6 +5,9 @@ import { slideLabelNo } from '../model/deck';
 import { mkSlide } from '../model/grid';
 import { ed, mark, S, T, ui } from '../state';
 
+/** The slide last scrolled into view in the list. */
+let shownCur = -1;
+
 export function drawThumbs(): void {
   const box = $('slides');
   const Th = T();
@@ -40,6 +43,7 @@ export function drawThumbs(): void {
       }
     }
     box.children[k].className = 'th' + (k === ed.cur ? ' on' : '') + (sl.frame && k > 0 ? ' fr' : '');
+    if (k === ed.cur && shownCur !== ed.cur) { shownCur = ed.cur; (box.children[k] as HTMLElement).scrollIntoView({ block: 'nearest' }); }
     (box.children[k].lastChild as HTMLElement).textContent = slideLabelNo(doc, k);
   });
 }

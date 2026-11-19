@@ -54,7 +54,7 @@ test('dropping a data file on the slide makes a plot with the data imported', as
   const o = await page.evaluate(() => window.ED.doc.slides[0].vec[0] as { x: number; y: number; data: { title: string } });
   expect([o.x, o.y, o.data.title]).toEqual([5, 3, 'power spectrum']);
   await expect(page.locator('#dstatus')).toContainText('Imported into the deck (3 series)');
-  expect(await plotPixels(page)).toBeGreaterThan(50);
+  await expect.poll(() => plotPixels(page)).toBeGreaterThan(50); // drawn on the next frame
   await page.keyboard.press('Control+z');
   expect(await page.evaluate(() => window.ED.doc.slides[0].vec.length)).toBe(0);
 });
@@ -74,8 +74,7 @@ test('a linked data file loads from the data folder and redraws when it changes'
   await page.click('#dlink');
   await expect(page.locator('#dstatus')).toContainText('results/spectrum.json: loaded');
   await expect(page.locator('#dstatus')).toContainText('Data folder: project');
-  const before = await plotPixels(page);
-  expect(before).toBeGreaterThan(50);
+  await expect.poll(() => plotPixels(page)).toBeGreaterThan(50);
   // The analysis is re-run: the file changes, and the plot follows without any click.
   const shot = await page.locator('#cv').screenshot();
   await page.evaluate((txt) => { window.__files['results/spectrum.json'] = txt; window.__stamp++; }, fixture('histogram'));

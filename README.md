@@ -63,7 +63,7 @@ cd python && pytest   # the matplotlib exporter
 | $ (text tool) | open the equation bar; Enter or $ to place, $ first for display style |
 | Shift / Alt while drawing a line | vertical-first route / arrow head |
 | Ctrl+Z, Ctrl+Shift+Z | undo, redo |
-| Ctrl+C / X / V | copy, cut, paste a selection |
+| Ctrl+C / X / V | copy, cut, paste the selected cells (with the plots inside them) or the selected object; paste works on any slide, in the same place or at the selection |
 | Ctrl+S, Ctrl+Shift+S, Ctrl+O | save, save as, open |
 | P | present (Esc returns) |
 
